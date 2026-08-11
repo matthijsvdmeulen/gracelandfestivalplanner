@@ -69,6 +69,23 @@ check("blokkenschema: podium, titel en tijden", rows, [
     ("Wilde nis", "Nachtset", "22:00", "00:00"),
 ])
 
+# De podiumnaam staat in een aparte kolom, niet in de lane zelf. Wie hem in de
+# lane zoekt pakt de eerste programmatitel en verzint zo een podium - dat gaf
+# ooit een "Gracetalent"-podium met David Benjamin Blower eronder.
+check("blokkenschema: titel wordt nooit een podium",
+      [s for s, _t, _a, _b in rows if s in {t for _s, t, _a, _b in rows}], [])
+
+# Loopt het aantal podia niet gelijk met het aantal lanes, dan is de structuur
+# gewijzigd: liever niets terugmelden dan blokken onder een verzonnen podium.
+check("blokkenschema: scheve structuur levert niets",
+      S.parse_timetable(
+          '<div class="timetable__grid--column-locations">'
+          '<div class="timetable__location"><div class="timetable__stage">A</div></div>'
+          '</div><div class="timetable__grid--column-timeline">'
+          '<div class="timetable__location"><div class="timetable__performance">'
+          '<span>X</span><div class="timetable__performance-times">17:00 - 18:00</div>'
+          '</div></div><div class="timetable__location"></div></div>'), [])
+
 # --- samenstellen ---------------------------------------------------------- #
 warn = []
 days, extra = S.build_days(

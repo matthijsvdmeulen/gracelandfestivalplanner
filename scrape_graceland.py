@@ -195,23 +195,27 @@ def code_for(cats):
 # --------------------------------------------------------------------------- #
 # blokkenschema, alleen als controle                                           #
 # --------------------------------------------------------------------------- #
-def _label_of(loc):
-    for el in loc.find_all(True):
-        if el.find(True):
-            continue
-        t = txt(el)
-        if t and not TIME_RE.search(t):
-            return t
-    return None
-
-
 def parse_timetable(html):
-    """(podium, titel, begin, eind) op basis van de echte CSS-klassen."""
+    """(podium, titel, begin, eind) op basis van de echte CSS-klassen.
+
+    Het raster zet de podiumnamen en de speelblokken in twee losse kolommen:
+    `.timetable__grid--column-locations` bevat per podium alleen de naam,
+    `.timetable__grid--column-timeline` bevat per podium alleen de blokken.
+    De volgorde koppelt de twee - iets anders biedt de pagina niet. Loopt het
+    aantal niet gelijk, dan is de structuur gewijzigd en leveren we niets:
+    de aanroeper waarschuwt daar al over, en geen podium is beter dan een
+    verzonnen podium.
+    """
     soup = soup_of(html)
+    stages = [txt(el) for el in
+              soup.select(".timetable__grid--column-locations .timetable__stage")]
+    lanes = soup.select(".timetable__grid--column-timeline .timetable__location")
+    if not stages or len(stages) != len(lanes):
+        return []
+
     out = []
-    for loc in soup.select(".timetable__location"):
-        label = _label_of(loc)
-        for perf in loc.select(".timetable__performance"):
+    for label, lane in zip(stages, lanes):
+        for perf in lane.select(".timetable__performance"):
             tm_el = perf.select_one(".timetable__performance-times")
             if tm_el is None:
                 continue
