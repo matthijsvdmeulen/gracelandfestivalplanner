@@ -113,6 +113,38 @@ check("bouw: melding noemt het programma",
        "za 22:00 Nachtset (Wilde nis)"])
 check("bouw: geen onbekende podia", extra, [])
 
+# --- blokkenschema leidend bij een verschoven tijd ------------------------- #
+# Zelfde dag, zelfde podium, zelfde titel, andere tijd: geen tweede optreden
+# maar een verschoven tijd. Zonder dit stond Luchtkasteel donderdag twee keer
+# op Bospodium, om 21:00 (detailpagina) en om 22:00 (blokkenschema).
+shifted = {"luchtkasteel": {
+    "slug": "luchtkasteel", "title": "Luchtkasteel", "cats": ["Muziek"],
+    "when": [{"day": "do", "st": "21:00", "en": "22:00", "stage": "Bospodium"}]}}
+warn2 = []
+by2 = {x["key"]: x["items"] for x in S.build_days(
+    shifted, [("do", "Bospodium", "Luchtkasteel", "22:00", "23:00")], warn2)[0]}
+check("verschoven tijd: blijft één blok", len(by2["do"]), 1)
+check("verschoven tijd: blokkenschema wint, soort en slug blijven",
+      by2["do"], [["Bospodium", "Luchtkasteel", "22:00", "23:00", "M", "luchtkasteel"]])
+check("verschoven tijd: wordt gemeld", len(warn2), 1)
+
+# Een echt tweede optreden op een andere tijd moet er juist wel bij komen.
+warn3 = []
+by3 = {x["key"]: x["items"] for x in S.build_days(
+    shifted, [("do", "Bospodium", "Luchtkasteel", "21:00", "22:00"),
+              ("do", "Bospodium", "Luchtkasteel", "23:00", "23:30")], warn3)[0]}
+check("tweede optreden: komt er wel bij",
+      sorted(i[2] for i in by3["do"]), ["21:00", "23:00"])
+
+# Een blok dat alleen in het blokkenschema staat maar wel een bekend programma
+# is, houdt zijn soort en link in plaats van als "overig" te eindigen.
+warn4 = []
+by4 = {x["key"]: x["items"] for x in S.build_days(
+    shifted, [("do", "Bospodium", "Luchtkasteel", "21:00", "22:00"),
+              ("vr", "Bospodium", "Luchtkasteel", "15:00", "16:00")], warn4)[0]}
+check("bekende titel: erft soort en slug",
+      by4["vr"], [["Bospodium", "Luchtkasteel", "15:00", "16:00", "M", "luchtkasteel"]])
+
 # --- tijdrekenen ----------------------------------------------------------- #
 check("tijd: middernacht hoort bij de dag ervoor", S.to_min("00:15") > S.to_min("23:00"), True)
 check("tijd: 02:00 telt door", S.to_min("02:00"), 26 * 60)

@@ -45,10 +45,26 @@ Verlaag ze niet om een run "te laten slagen"; zoek uit waarom er minder
 gevonden wordt.
 
 **Podia komen van de detailpagina.** Elke `/programma/<slug>/` heeft een tabel
-"Waar en wanneer" met dag, tijd en podium. Dát is de bron. Het blokkenschema
-(`/tijdschema/<dag>/`) wordt alleen ter controle gelezen: wat daar staat en
-nergens anders, wordt gemeld en met categorie `O` toegevoegd. Een eerdere
+"Waar en wanneer" met dag, tijd en podium. Dát is de bron voor het podium. Het
+blokkenschema (`/tijdschema/<dag>/`) wordt ter controle gelezen: wat daar staat
+en nergens anders, wordt gemeld en toegevoegd — met de categorie en slug van
+het gelijknamige programma als we dat kennen, anders categorie `O`. Een eerdere
 versie leidde het podium af uit de documentvolgorde — niet naar terug.
+
+**Het blokkenschema staat in twee kolommen.** `.timetable__grid--column-locations`
+bevat per podium alleen de naam, `.timetable__grid--column-timeline` alleen de
+blokken; de volgorde koppelt de twee. Zoek de podiumnaam niet binnen de lane
+zelf — dan pak je de eerste programmatitel en verzin je een podium. Dat leverde
+ooit een podium "Gracetalent" op plus zo'n 150 valse "podium verschilt"-meldingen.
+Lopen beide kolommen niet gelijk, dan levert `parse_timetable` niets: geen
+podium is beter dan een verzonnen podium.
+
+**Bij een verschoven tijd wint het blokkenschema.** Staat hetzelfde programma
+op dezelfde dag en hetzelfde podium maar op een andere tijd, dan is dat geen
+tweede optreden maar een verschoven tijd; het blok krijgt de tijd van het
+blokkenschema en dat wordt gemeld. Het blokkenschema wordt eerder bijgewerkt
+dan de losse detailpagina's. Zonder deze regel stond Luchtkasteel donderdag
+twee keer op Bospodium, om 21:00 én om 22:00.
 
 **`SOURCE_URL` in `planner.html` blijft leeg in de repo.** De workflow vult met
 `sed` het relatieve pad `./schema.json` in tijdens het publiceren, zodat het

@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-11T14:21:21+00:00",
+ "generated": "2026-08-11T14:44:19+00:00",
  "source": "https://gracelandfestival.nl/programma/",
  "days": [
   {
@@ -34,27 +34,19 @@
     ],
     [
      "Bospodium",
-     "Luchtkasteel",
-     "21:00",
-     "22:00",
-     "M",
-     "luchtkasteel"
-    ],
-    [
-     "Bospodium",
      "David Benjamin Blower",
      "21:00",
      "22:00",
-     "O",
-     null
+     "M",
+     "david-benjamin-blower"
     ],
     [
      "Bospodium",
      "Luchtkasteel",
      "22:00",
      "23:00",
-     "O",
-     null
+     "M",
+     "luchtkasteel"
     ],
     [
      "Vindplaats",
