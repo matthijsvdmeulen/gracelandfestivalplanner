@@ -14,9 +14,17 @@ name = "gracelandplanner-api"
 main = "index.js"
 compatibility_date = "2026-08-01"
 
+# Logs en foutmeldingen terugzien in het Cloudflare-dashboard. Zonder dit is
+# een Worker die stukloopt alleen zichtbaar als een 500 in de browser.
+[observability]
+enabled = true
+
+# De binding heet PLANNER omdat index.js env.PLANNER leest. Het voorbeeld dat
+# Cloudflare bij een nieuwe namespace toont noemt hem KV; die naam overnemen
+# betekent dat de Worker geen opslag meer vindt.
 [[kv_namespaces]]
 binding = "PLANNER"
-id = "VUL_HIER_DE_NAMESPACE_ID_IN"
+id = "194fc7e4a6e44584a1e2b2ee5aadb170"
 
 [[routes]]
 pattern = "gracelandplanner.meulen.dev/api/*"
