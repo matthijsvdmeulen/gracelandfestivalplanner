@@ -54,6 +54,21 @@ De planning van de vier staat in Cloudflare KV, achter een Worker die op
 `gracelandplanner.meulen.dev/api/*` voor GitHub Pages langs hangt. Zelfde
 origin als de planner, dus geen CORS.
 
+Uitrollen gaat via `.github/workflows/worker.yml`, dus vanuit de browser en
+zonder wrangler op je eigen machine. Eenmalig:
+
+1. **Cloudflare → Storage & Databases → KV → Create**, naam `PLANNER`. Zet de
+   namespace-id in `worker/wrangler.toml`.
+2. **Cloudflare → My Profile → API Tokens**, een token met het sjabloon
+   *Edit Cloudflare Workers*. Het account-id staat rechts op de
+   Workers-overzichtspagina.
+3. **GitHub → Settings → Secrets and variables → Actions**, drie secrets:
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` en `PLANNER_KEY` (de
+   gedeelde toegangscode die jullie vier invullen).
+4. **Actions → Worker uitrollen → Run workflow**.
+
+Daarna rolt elke wijziging in `worker/` zichzelf uit. Liever lokaal:
+
 ```bash
 cd worker
 npm install -g wrangler && wrangler login

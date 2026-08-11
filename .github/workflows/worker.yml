@@ -1,0 +1,47 @@
+# .github/workflows/worker.yml
+#
+# Rolt de Worker uit die de gedeelde planning bewaart. Draait alleen als er in
+# worker/ iets verandert - het schema wordt elk half uur teruggecommit en dat
+# hoeft de Worker niet elke keer opnieuw uit te rollen.
+#
+# Eenmalig instellen onder Settings -> Secrets and variables -> Actions:
+#   CLOUDFLARE_API_TOKEN    token met "Edit Cloudflare Workers"
+#   CLOUDFLARE_ACCOUNT_ID   te vinden rechts op de Workers-overzichtspagina
+#   PLANNER_KEY             de gedeelde toegangscode voor jullie vier
+
+name: Worker uitrollen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - ".github/workflows/worker.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controleren of de KV-namespace ingevuld is
+        run: |
+          if grep -q "VUL_HIER_DE_NAMESPACE_ID_IN" worker/wrangler.toml; then
+            echo "De KV-namespace staat nog niet in worker/wrangler.toml."
+            echo "Maak er een aan in Cloudflare (Storage & Databases -> KV) en"
+            echo "zet de id daar neer."
+            exit 1
+          fi
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          # Zet de toegangscode bij elke uitrol, zodat GitHub de enige plek is
+          # waar hij staat.
+          secrets: |
+            PLANNER_KEY
+        env:
+          PLANNER_KEY: ${{ secrets.PLANNER_KEY }}
