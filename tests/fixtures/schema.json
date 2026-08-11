@@ -4,7 +4,9 @@
     ["Grasland","Festivalopening","20:00","21:00","P","festivalopening"]]},
   {"key":"vr","label":"Vrijdag","date":"14 aug","iso":"20260814","items":[
     ["Grasland","Lucky Fonz III","19:00","20:00","M","lucky-fonz-iii"],
-    ["Bospodium","Spull","22:00","23:00","M","spull"]]},
+    ["Bospodium","Spull","22:00","23:00","M","spull"],
+    ["Kinderdorp","Speelvlooien Circus","10:00","12:00","K","speelvlooien-circus"],
+    ["The Lounge","Karaoke met Berend Koen","22:00","23:00","T","karaoke-met-berend-koen"]]},
   {"key":"za","label":"Zaterdag","date":"15 aug","iso":"20260815","items":[
     ["Grasland","Nynke Laverman","17:30","18:30","M","nynke-laverman"],
     ["Wilde nis","Ezra","22:00","00:00","M","ezra"]]},

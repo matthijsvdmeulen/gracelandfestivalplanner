@@ -195,23 +195,27 @@ def code_for(cats):
 # --------------------------------------------------------------------------- #
 # blokkenschema, alleen als controle                                           #
 # --------------------------------------------------------------------------- #
-def _label_of(loc):
-    for el in loc.find_all(True):
-        if el.find(True):
-            continue
-        t = txt(el)
-        if t and not TIME_RE.search(t):
-            return t
-    return None
-
-
 def parse_timetable(html):
-    """(podium, titel, begin, eind) op basis van de echte CSS-klassen."""
+    """(podium, titel, begin, eind) op basis van de echte CSS-klassen.
+
+    Het raster zet de podiumnamen en de speelblokken in twee losse kolommen:
+    `.timetable__grid--column-locations` bevat per podium alleen de naam,
+    `.timetable__grid--column-timeline` bevat per podium alleen de blokken.
+    De volgorde koppelt de twee - iets anders biedt de pagina niet. Loopt het
+    aantal niet gelijk, dan is de structuur gewijzigd en leveren we niets:
+    de aanroeper waarschuwt daar al over, en geen podium is beter dan een
+    verzonnen podium.
+    """
     soup = soup_of(html)
+    stages = [txt(el) for el in
+              soup.select(".timetable__grid--column-locations .timetable__stage")]
+    lanes = soup.select(".timetable__grid--column-timeline .timetable__location")
+    if not stages or len(stages) != len(lanes):
+        return []
+
     out = []
-    for loc in soup.select(".timetable__location"):
-        label = _label_of(loc)
-        for perf in loc.select(".timetable__performance"):
+    for label, lane in zip(stages, lanes):
+        for perf in lane.select(".timetable__performance"):
             tm_el = perf.select_one(".timetable__performance-times")
             if tm_el is None:
                 continue
@@ -263,27 +267,56 @@ def build_days(programs, timetable_rows, warn):
         return len(STAGE_ORDER) + extra_stages.index(name)
 
     per_day = OrderedDict((k, []) for k in DAY_META)
-    seen = {}
+    by_title = {}
     for p in programs.values():
         code = code_for(p["cats"])
+        by_title.setdefault(p["title"], (code, p["slug"]))
         for w in p["when"]:
             if w["day"] not in per_day:
                 warn.append("onbekende dag bij %s" % p["slug"])
                 continue
-            seen[(w["day"], p["title"], w["st"])] = w["stage"]
             per_day[w["day"]].append(
                 [w["stage"], p["title"], w["st"], w["en"], code, p["slug"]])
 
+    # Eerste ronde: exacte treffers op dag + titel + begintijd. Wat overblijft
+    # aan beide kanten gaat de tweede ronde in.
+    exact, used, leftover = {}, set(), []
+    for day, blocks in per_day.items():
+        for b in blocks:
+            exact.setdefault((day, b[1], b[2]), b)
+
     for day, stage, title, st, en in timetable_rows:
-        key = (day, title, st)
-        if key in seen:
-            if stage and seen[key] != stage:
-                warn.append("podium verschilt voor %s (%s %s): detailpagina zegt "
-                            "%s, blokkenschema %s" % (title, day, st, seen[key], stage))
+        hit = exact.get((day, title, st))
+        if hit is None:
+            leftover.append((day, stage, title, st, en))
             continue
+        used.add(id(hit))
+        if stage and hit[0] != stage:
+            warn.append("podium verschilt voor %s (%s %s): detailpagina zegt "
+                        "%s, blokkenschema %s" % (title, day, st, hit[0], stage))
+
+    # Tweede ronde: staat hetzelfde programma op dezelfde dag en hetzelfde
+    # podium, maar op een andere tijd? Dan is het niet een tweede optreden maar
+    # een verschoven tijd. Het blokkenschema is daarin leidend - dat is eerder
+    # bijgewerkt dan de losse detailpagina's. Zonder deze stap komt zo'n
+    # programma er twee keer in te staan, op beide tijden.
+    for day, stage, title, st, en in leftover:
+        twin = next((b for b in per_day[day]
+                     if b[1] == title and b[0] == stage and id(b) not in used), None)
+        if twin is not None:
+            used.add(id(twin))
+            warn.append("tijd bijgesteld naar het blokkenschema voor %s (%s %s): "
+                        "detailpagina zegt %s, blokkenschema %s"
+                        % (title, day, stage, twin[2], st))
+            twin[2], twin[3] = st, en
+            continue
+        # Alleen in het blokkenschema. Kennen we de titel wel als programma,
+        # dan nemen we categorie en slug over, zodat het blok een soort en een
+        # link houdt in plaats van als "overig" zonder detailpagina te eindigen.
+        code, slug = by_title.get(title, ("O", None))
         warn.append("wel in het blokkenschema, niet op een detailpagina: "
                     "%s %s %s (%s)" % (day, st, title, stage))
-        per_day[day].append([stage, title, st, en, "O", None])
+        per_day[day].append([stage, title, st, en, code, slug])
 
     days = []
     for key, (label, date, iso, _slug) in DAY_META.items():

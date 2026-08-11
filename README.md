@@ -1,9 +1,9 @@
-# Mijn Graceland 2026
+# Ons Graceland 2026
 
-Persoonlijke planner voor Graceland Festival 2026 (13–16 augustus, Landgoed
+Gedeelde planner voor Graceland Festival 2026 (13–16 augustus, Landgoed
 Velder, Liempde). Een scraper haalt het programma van gracelandfestival.nl op,
-een enkel HTML-bestand laat je daaruit je eigen weekend samenstellen. Je keuze
-blijft in je eigen browser staan.
+een enkel HTML-bestand laat je daaruit je weekend samenstellen. Met z'n vieren:
+ieder heeft een eigen lijstje, en je ziet van elkaar waar je heen gaat.
 
 Geen officiële uitgave van Graceland Festival. Het
 [officiële tijdschema](https://gracelandfestival.nl/tijdschema/) blijft de bron.
@@ -13,10 +13,15 @@ Geen officiële uitgave van Graceland Festival. Het
 - Blokkenschema per dag, met filters op soort en drie zoomniveaus
 - Programmaoverzicht met beschrijvingen, foto's en zoeken
 - Eigen selectie met overlapwaarschuwing, export naar tekst en `.ics`
+- Gedeeld met z'n vieren: kies bovenin wie je bent, zie op elk blok wie er nog
+  meer heen gaat, en in **Samen** de vier planningen naast elkaar
+- Doorlopende onderdelen (het veldprogramma) zelf inplannen per half uur
+- Kinderdorp en The Lounge blijven buiten beeld
 - Wijzigt het schema, dan verhuist je keuze mee en krijg je te zien wat er
   veranderd is
 - Werkt zonder netwerk: het laatst opgehaalde schema staat in de browser, en
-  er zit een noodschema in het bestand zelf
+  er zit een noodschema in het bestand zelf. Ligt de gedeelde opslag eruit, dan
+  blijft je keuze lokaal staan en gaat hij later alsnog mee.
 
 ## Aan de praat
 
@@ -34,13 +39,40 @@ om het ingebouwde noodschema te gebruiken.
 
 `.github/workflows/schema.yml` scrapet elk half uur en publiceert het geheel.
 Eenmalig: **Settings → Pages → Source: GitHub Actions**. De workflow zet
-`planner.html` als `index.html` neer met `SOURCE_URL` op `./schema.json`, dus
-planner en data staan op dezelfde origin en CORS speelt geen rol.
+`planner.html` als `index.html` neer met `SOURCE_URL` op `./schema.json` en
+`API_URL` op `/api`, dus planner, data en opslag staan op dezelfde origin en
+CORS speelt geen rol.
 
 Draai de workflow daarna één keer handmatig via **Actions → Run workflow**.
 
 Let op: scheduled workflows op GitHub lopen bij drukte wat achter, en worden
 uitgezet als er 60 dagen niets in de repo gebeurt.
+
+## Gedeelde opslag
+
+De planning van de vier staat in Cloudflare KV, achter een Worker die op
+`gracelandplanner.meulen.dev/api/*` voor GitHub Pages langs hangt. Zelfde
+origin als de planner, dus geen CORS.
+
+```bash
+cd worker
+npm install -g wrangler && wrangler login
+wrangler kv namespace create PLANNER     # vul de id in wrangler.toml
+wrangler secret put PLANNER_KEY          # gedeelde toegangscode
+wrangler deploy
+```
+
+De route werkt alleen als het DNS-record van `gracelandplanner.meulen.dev` in
+Cloudflare **geproxyd** staat (oranje wolk). Bij het allereerste opzetten moet
+hij juist op DNS-only (grijs) staan tot GitHub het certificaat heeft
+uitgegeven; daarna omzetten naar geproxyd.
+
+Iedereen schrijft alleen zijn eigen lijstje weg (`PUT /api/plan/<naam>`), dus
+twee mensen die tegelijk plannen kunnen elkaar niet overschrijven. De planner
+kijkt elke twintig seconden of er iets gewijzigd is.
+
+Namen toevoegen of wijzigen: `PEOPLE` in `planner.html` én in
+`worker/index.js`.
 
 ## Testen
 
@@ -51,7 +83,7 @@ node tests/smoke_planner.mjs     # offline, echte DOM
 ```
 
 Beide draaien zonder netwerk, dus ook in omgevingen waar gracelandfestival.nl
-niet bereikbaar is.
+niet bereikbaar is; de rooktest praat tegen een nepserver in het testbestand.
 
 ## Hoe het in elkaar zit
 

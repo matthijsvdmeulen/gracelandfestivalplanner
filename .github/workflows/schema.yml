@@ -57,17 +57,22 @@ jobs:
           git pull --rebase --autostash
           git push
 
-      # De planner staat generiek in de repo (SOURCE_URL is leeg); hier wordt
-      # het relatieve pad naar schema.json ingevuld voor de gepubliceerde versie.
+      # De planner staat generiek in de repo (SOURCE_URL en API_URL zijn leeg);
+      # hier worden het pad naar schema.json en dat van de gedeelde opslag
+      # ingevuld voor de gepubliceerde versie. Allebei relatief, zodat planner,
+      # data en opslag op dezelfde origin staan.
       - name: Site samenstellen
         run: |
           mkdir -p _site
-          sed "s|const SOURCE_URL = '';|const SOURCE_URL = './schema.json';|" \
+          sed -e "s|const SOURCE_URL = '';|const SOURCE_URL = './schema.json';|" \
+              -e "s|const API_URL = '';|const API_URL = '/api';|" \
             planner.html > _site/index.html
           cp schema.json _site/schema.json
           cp CNAME _site/CNAME
           grep -q "'./schema.json'" _site/index.html \
             || { echo "SOURCE_URL niet ingevuld - is die regel gewijzigd?"; exit 1; }
+          grep -q "const API_URL = '/api';" _site/index.html \
+            || { echo "API_URL niet ingevuld - is die regel gewijzigd?"; exit 1; }
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
