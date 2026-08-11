@@ -1,0 +1,23 @@
+# Cloudflare Worker die de gedeelde planning bewaart.
+#
+# Eenmalig opzetten:
+#   npm install -g wrangler && wrangler login
+#   wrangler kv namespace create PLANNER      # vul de id hieronder in
+#   wrangler secret put PLANNER_KEY           # de gedeelde toegangscode
+#   wrangler deploy
+#
+# De route hangt de Worker voor GitHub Pages langs. Dat werkt alleen als het
+# DNS-record van gracelandplanner.meulen.dev in Cloudflare geproxyd staat
+# (oranje wolk). Alles buiten /api/* gaat gewoon door naar GitHub Pages.
+
+name = "gracelandplanner-api"
+main = "index.js"
+compatibility_date = "2026-08-01"
+
+[[kv_namespaces]]
+binding = "PLANNER"
+id = "VUL_HIER_DE_NAMESPACE_ID_IN"
+
+[[routes]]
+pattern = "gracelandplanner.meulen.dev/api/*"
+zone_name = "meulen.dev"
