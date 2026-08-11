@@ -14,7 +14,7 @@ commentaar, commitberichten.
 | `planner.html` | De hele applicatie: één bestand, geen build, geen dependencies. |
 | `schema.json` | Gegenereerd. Handmatig bewerken heeft geen zin, de volgende run overschrijft het. |
 | `.graceland-cache.json` | Gegenereerd. Beschrijvingen per slug met timestamp, wordt meegecommit. |
-| `worker/` | Cloudflare Worker + KV: de gedeelde planning van de vier. |
+| `worker/` | Cloudflare Worker + KV: de gedeelde planning, één groep per toegangscode. |
 | `.github/workflows/schema.yml` | Elk half uur scrapen + publiceren op GitHub Pages. |
 | `tests/` | Draait offline op fixtures. |
 
@@ -24,6 +24,7 @@ commentaar, commitberichten.
 pip install -r requirements.txt
 python scrape_graceland.py --out schema.json     # ~1 min de eerste keer
 python tests/test_scraper.py                     # offline, geen netwerk
+node tests/test_worker.mjs                       # KV in het geheugen
 node tests/smoke_planner.mjs                     # vereist: npm install jsdom
 ```
 
@@ -81,17 +82,38 @@ Worker eruit, dan blijft alles werken met de opslag in de browser; wat je
 wijzigt gaat bij de volgende geslaagde ronde alsnog mee. Bouw geen scherm dat
 op een geslaagde serveraanroep wacht.
 
-**Iedereen schrijft alleen zijn eigen lijstje.** `PUT /api/plan/<naam>` raakt
+**Iedereen schrijft alleen zijn eigen lijstje.** `PUT /api/plan/<id>` raakt
 alleen die persoon, dus twee mensen die tegelijk plannen kunnen elkaar niet
-overschrijven. Ga niet over op één document met alle vier erin zonder een
-revisie-onderhandeling mee te leveren. De namen in `PEOPLE` staan zowel in
-`planner.html` als in `worker/index.js`; die twee moeten gelijk blijven, en een
-sleutel wijzigen betekent bestaande planning verhuizen.
+overschrijven. Ga niet over op één document met iedereen erin zonder een
+revisie-onderhandeling mee te leveren.
+
+**De code is de groep.** Uit de toegangscode leidt de Worker met HMAC-SHA256 en
+`GROUP_SALT` een groeps-id af; de code zelf komt nooit in KV terecht. Vervang
+dat niet door een kale hash: met HMAC is er zonder die sleutel geen groeps-id
+te berekenen, ook niet met een woordenlijst en de KV-inhoud ernaast. `GROUP_SALT`
+wijzigen maakt alle bestaande groepen onvindbaar.
+
+**Een onbekende code levert nooit stilzwijgend een lege groep op.** De Worker
+antwoordt met 404 en `unknown: true`, en de planner vraagt dan om bevestiging.
+Zonder die stap is een typefout in je code niet te onderscheiden van "al mijn
+planning is verdwenen" - en dat is precies het moment waarop iemand in paniek
+opnieuw begint te klikken.
+
+**Namen horen bij de groep, niet bij de code.** `PEOPLE` staat niet meer in
+`planner.html`: de planner haalt de namen op en cachet ze onder
+`graceland2026:groep`, zodat een netwerkhapering het scherm niet leegmaakt.
+Persoons-id's zijn los van de weergavenaam, zodat hernoemen niemand zijn
+planning kost; verwijderen ruimt de planning van die persoon wél op.
 
 **Verborgen podia zijn een keuze van de planner, niet van de scraper.**
 `HIDDEN_STAGES` in `planner.html` haalt Kinderdorp en The Lounge uit het beeld;
 `schema.json` blijft compleet. Filter ze niet weg in de scraper - dan is het
 niet meer terug te draaien zonder opnieuw te scrapen.
+
+**Het programma blijft zonder code te bekijken.** Alleen de namen en de
+planning zitten achter het slot. Zet het blokkenschema en de programmalijst er
+niet ook achter: dat is openbare festivalinformatie, en de planner is zo meteen
+bruikbaar voor wie hem opent.
 
 **Geen `localStorage` als enige opslag.** `planner.html` gebruikt
 `window.storage` als die bestaat en valt anders terug op `localStorage`, met
