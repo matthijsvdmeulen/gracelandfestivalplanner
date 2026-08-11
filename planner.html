@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mijn Graceland 2026 — persoonlijk festivalprogramma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peat:#1B2118;
+  --soil:#48513E;
+  --chalk:#E6E5D8;
+  --paper:#F3F2E9;
+  --moss:#3E6B33;
+  --moss-deep:#2C4C24;
+  --ochre:#A9691A;
+  --line:rgba(27,33,24,.16);
+  --line-soft:rgba(27,33,24,.08);
+  --lane:132px;
+  --ppm:2.2;           /* pixels per minute */
+  --blockh:44px;
+  --radius:3px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--chalk);
+  color:var(--peat);
+  font-family:'Archivo',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1400px;margin:0 auto;padding:0 20px 80px}
+
+/* ---------- header ---------- */
+header.top{padding:34px 0 18px;border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-family:'Space Mono',ui-monospace,monospace;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--soil);margin:0 0 10px;
+}
+h1{
+  font-family:'Fraunces','Iowan Old Style',Georgia,serif;
+  font-weight:600;font-size:clamp(30px,5.4vw,52px);
+  line-height:1.02;letter-spacing:-.015em;margin:0 0 10px;
+}
+h1 em{font-style:italic;color:var(--moss)}
+.lede{max-width:62ch;margin:0;color:var(--soil);font-size:15px}
+.lede a{color:var(--moss-deep)}
+
+/* ---------- controls ---------- */
+.bar{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:16px 0;border-bottom:1px solid var(--line-soft);
+}
+.bar + .bar{border-bottom:1px solid var(--line)}
+.spacer{flex:1 1 auto}
+.label{
+  font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--soil);margin-right:2px;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.tab,.chip,.btn{
+  border:1px solid var(--line);background:transparent;border-radius:100px;
+  padding:7px 14px;font-size:13.5px;font-weight:500;
+  transition:background .13s ease,color .13s ease,border-color .13s ease;
+}
+.tab:hover,.chip:hover,.btn:hover{border-color:var(--peat)}
+.tab{display:inline-flex;align-items:baseline;gap:7px;padding:8px 15px}
+.tab .d{font-family:'Space Mono',monospace;font-size:11px;color:var(--soil)}
+.tab[aria-selected="true"]{background:var(--peat);border-color:var(--peat);color:var(--paper)}
+.tab[aria-selected="true"] .d{color:rgba(243,242,233,.65)}
+.tab .cnt{
+  font-family:'Space Mono',monospace;font-size:10.5px;
+  background:var(--moss);color:var(--paper);border-radius:100px;
+  padding:1px 6px;margin-left:1px;
+}
+.tab[aria-selected="true"] .cnt{background:var(--moss-soft,#B9CBA4);color:var(--moss-deep)}
+.chip[aria-pressed="true"]{background:var(--peat);border-color:var(--peat);color:var(--paper)}
+.chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.btn.ghost{border-style:dashed}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.zoom{display:inline-flex;border:1px solid var(--line);border-radius:100px;overflow:hidden}
+.zoom button{border:0;background:transparent;padding:7px 12px;font-size:13px;line-height:1}
+.zoom button[aria-pressed="true"]{background:var(--peat);color:var(--paper)}
+.seg{display:inline-flex;border:1px solid var(--peat);border-radius:100px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:8px 16px;font-size:13.5px;font-weight:600}
+.seg button[aria-selected="true"]{background:var(--peat);color:var(--paper)}
+
+/* ---------- schedule ---------- */
+.scroller{
+  overflow-x:auto;overflow-y:visible;margin-top:22px;
+  padding-bottom:6px;
+  scrollbar-color:var(--soil) transparent;
+}
+.sheet{width:max-content;min-width:100%}
+.row{display:grid;grid-template-columns:var(--lane) max-content;align-items:stretch}
+.lane{
+  position:sticky;left:0;z-index:4;background:var(--chalk);
+  border-right:1px solid var(--line);
+  padding:8px 12px 8px 0;
+  display:flex;align-items:flex-start;
+}
+.lane .nm{
+  font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:14.5px;
+  line-height:1.15;letter-spacing:-.01em;
+}
+.lane .nm span{display:block;font-family:'Space Mono',monospace;font-weight:400;
+  font-size:10px;letter-spacing:.1em;color:var(--soil);margin-top:3px;text-transform:uppercase}
+.track{position:relative}
+.row + .row .lane,.row + .row .track{border-top:1px solid var(--line-soft)}
+
+.rulerrow .lane{border-right:1px solid var(--line);background:var(--chalk)}
+.ruler{position:relative;height:30px}
+.tick{position:absolute;top:0;bottom:0;border-left:1px solid var(--line-soft)}
+.tick.hr{border-left-color:var(--line)}
+.tick b{
+  position:absolute;top:8px;left:5px;white-space:nowrap;
+  font-family:'Space Mono',monospace;font-weight:400;font-size:10.5px;color:var(--soil);
+}
+.gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--line-soft);pointer-events:none}
+.gridline.hr{background:var(--line)}
+
+.block{
+  position:absolute;
+  border:1px solid var(--bd,var(--line));
+  background:var(--bg,rgba(255,255,255,.5));
+  border-radius:var(--radius);
+  padding:5px 8px 5px 9px;
+  text-align:left;
+  overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;gap:1px;
+  transition:transform .1s ease, box-shadow .12s ease, opacity .15s ease;
+}
+.block::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,var(--soil));
+  opacity:.55;
+}
+.block .t{
+  font-size:12.5px;font-weight:600;line-height:1.16;letter-spacing:-.005em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.block .h{font-family:'Space Mono',monospace;font-size:9.5px;color:var(--soil);letter-spacing:.02em}
+.block:hover{transform:translateY(-1px);box-shadow:0 3px 0 rgba(27,33,24,.13);z-index:3}
+.block:focus-visible{outline:2px solid var(--moss-deep);outline-offset:2px;z-index:5}
+.block.on{background:var(--moss);border-color:var(--moss-deep);color:var(--paper)}
+.block.on::before{background:var(--paper);opacity:.85}
+.block.on .h{color:rgba(243,242,233,.78)}
+.block.on .t::after{content:" ✓";font-weight:700}
+.block.clash{border-color:var(--ochre);box-shadow:inset 0 0 0 1px var(--ochre)}
+.block.clash .t::after{content:" ⚠";}
+.block.dim{opacity:.14;pointer-events:none}
+.block.narrow{padding:4px 4px 4px 7px}
+.block.narrow .t{font-size:10.5px;-webkit-line-clamp:3}
+.block.narrow .h{display:none}
+
+.hint{
+  font-family:'Space Mono',monospace;font-size:10.5px;color:var(--soil);
+  letter-spacing:.06em;text-transform:uppercase;margin:14px 0 0;
+}
+
+/* ---------- my programme ---------- */
+.mine{margin-top:26px;display:grid;gap:34px}
+.dayblock{display:grid;grid-template-columns:56px 1fr;gap:20px}
+.core{position:relative;border-left:1px solid var(--line);border-right:1px solid var(--line);
+  background:repeating-linear-gradient(180deg,rgba(27,33,24,.045) 0 1px,transparent 1px 9px)}
+.core .layer{position:absolute;left:0;right:0;background:var(--ac,var(--moss));border-radius:1px}
+.core .hr{position:absolute;left:-56px;font-family:'Space Mono',monospace;font-size:9.5px;color:var(--soil)}
+.daytitle{
+  font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;margin:0 0 3px;
+}
+.daymeta{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--soil);margin:0 0 14px}
+.item{
+  display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:baseline;
+  padding:11px 0;border-top:1px solid var(--line-soft);
+}
+.item:first-of-type{border-top:1px solid var(--line)}
+.item .when{font-family:'Space Mono',monospace;font-size:12px;color:var(--soil);white-space:nowrap}
+.item .what{font-size:15.5px;font-weight:600;line-height:1.25}
+.item .what small{display:block;font-weight:400;font-size:12.5px;color:var(--soil);margin-top:2px;
+  font-family:'Space Mono',monospace;letter-spacing:.02em}
+.item .rm{border:0;background:transparent;color:var(--soil);font-size:17px;line-height:1;padding:4px 6px;border-radius:4px}
+.item .rm:hover{background:rgba(27,33,24,.08);color:var(--peat)}
+.item.clash .what::after{
+  content:"overlap";font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ochre);border:1px solid var(--ochre);
+  border-radius:100px;padding:1px 7px;margin-left:8px;vertical-align:2px;white-space:nowrap;
+}
+.gap{
+  font-family:'Space Mono',monospace;font-size:10.5px;color:var(--soil);
+  padding:5px 0 5px 110px;letter-spacing:.05em;
+}
+.empty{
+  border:1px dashed var(--line);border-radius:6px;padding:34px 24px;text-align:center;color:var(--soil);
+}
+.empty b{display:block;font-family:'Fraunces',Georgia,serif;font-size:19px;color:var(--peat);margin-bottom:6px;font-weight:600}
+
+.saved{
+  font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--moss);opacity:0;transition:opacity .3s ease;
+}
+.saved.show{opacity:1}
+.status{
+  font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.08em;
+  color:var(--soil);display:inline-flex;align-items:center;gap:6px;
+}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--soil);opacity:.45}
+.status.ok::before{background:var(--moss);opacity:1}
+.status.warn{color:var(--ochre)}
+.status.warn::before{background:var(--ochre);opacity:1}
+.notice{
+  margin-top:22px;border:1px solid var(--ochre);border-left-width:4px;border-radius:4px;
+  padding:14px 18px;background:rgba(169,105,26,.06);
+}
+.notice b{font-family:'Fraunces',Georgia,serif;font-size:16px;font-weight:600;display:block;margin-bottom:6px}
+.notice ul{margin:0 0 12px;padding-left:18px;font-size:13.5px;color:var(--soil)}
+.notice li{margin:3px 0}
+.notice strong{color:var(--peat)}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--soil);max-width:70ch}
+footer a{color:var(--moss-deep)}
+
+#q{
+  border:1px solid var(--line);border-radius:100px;background:transparent;
+  padding:7px 15px;font:inherit;font-size:13.5px;color:var(--peat);min-width:210px;
+}
+#q:focus{outline:none;border-color:var(--peat)}
+.proglist{margin-top:20px;display:grid;gap:0}
+.prog{
+  display:grid;grid-template-columns:84px 1fr;gap:18px;
+  padding:20px 0;border-top:1px solid var(--line-soft);
+}
+.prog:first-child{border-top:1px solid var(--line)}
+.thumb{width:84px;height:84px;object-fit:cover;border-radius:3px;display:block}
+.thumb.ph{border:1px solid var(--line-soft)}
+.pbody h3{
+  font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:600;
+  letter-spacing:-.01em;margin:0 0 5px;line-height:1.15;
+}
+.tags{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:6px}
+.tags span{
+  font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--soil);border:1px solid var(--line);
+  border-radius:100px;padding:2px 8px;
+}
+.lead{margin:0 0 10px;font-size:14px;color:var(--soil);line-height:1.5;max-width:66ch;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.occs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.occ{
+  border:1px solid var(--line);background:transparent;border-radius:100px;
+  padding:4px 11px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.02em;
+}
+.occ:hover{border-color:var(--peat)}
+.occ.on{background:var(--moss);border-color:var(--moss-deep);color:var(--paper)}
+.occ.on::after{content:" ✓"}
+.cont{font-family:'Space Mono',monospace;font-size:11px;color:var(--soil);letter-spacing:.05em}
+.more{
+  border:0;background:transparent;padding:0;font-size:13px;font-weight:600;
+  color:var(--moss-deep);border-bottom:1px solid var(--moss-deep);
+}
+.info{
+  position:absolute;top:3px;right:4px;width:15px;height:15px;border-radius:50%;
+  border:1px solid var(--line);display:grid;place-items:center;
+  font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:10px;line-height:1;
+  background:var(--paper);color:var(--soil);
+}
+.info:hover{background:var(--peat);color:var(--paper);border-color:var(--peat)}
+.block.on .info{background:rgba(243,242,233,.22);border-color:transparent;color:var(--paper)}
+dialog#detail{
+  border:1px solid var(--peat);border-radius:5px;padding:0;max-width:620px;width:calc(100% - 32px);
+  background:var(--paper);color:var(--peat);position:relative;max-height:86vh;
+}
+dialog#detail::backdrop{background:rgba(27,33,24,.55)}
+dialog#detail .x{
+  position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;border-radius:50%;
+  border:0;background:var(--paper);font-size:20px;line-height:1;color:var(--peat);
+}
+dialog#detail .x:hover{background:var(--chalk)}
+dialog#detail .hero{width:100%;height:210px;object-fit:cover;display:block}
+dialog#detail .dbody{padding:22px 26px 28px}
+dialog#detail h2{
+  font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:600;
+  letter-spacing:-.015em;margin:0 0 8px;line-height:1.1;
+}
+dialog#detail p{font-size:14.5px;line-height:1.6;margin:0 0 12px;max-width:60ch}
+dialog#detail .dlinks{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+dialog#detail .dlinks a{color:var(--moss-deep);font-size:13px}
+.item .what a.dt{cursor:pointer;border-bottom:1px solid var(--line)}
+.item .what a.dt:hover{border-bottom-color:var(--peat)}
+
+@media (max-width:720px){
+  :root{--lane:96px}
+  .wrap{padding:0 14px 70px}
+  .lane .nm{font-size:12.5px}
+  .item{grid-template-columns:82px 1fr auto;gap:10px}
+  .dayblock{grid-template-columns:34px 1fr;gap:14px}
+  .core .hr{display:none}
+  .gap{padding-left:92px}
+  #q{min-width:0;flex:1 1 100%}
+  .prog{grid-template-columns:62px 1fr;gap:12px}
+  .thumb{width:62px;height:62px}
+  dialog#detail .hero{height:150px}
+  dialog#detail .dbody{padding:18px 18px 24px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  .bar,.scroller,.hint,footer .noprint,.seg,.zoom{display:none!important}
+  body{background:#fff}
+  .item{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Landgoed Velder, Liempde · 13–16 augustus 2026</p>
+  <h1>Mijn Graceland<br><em>Grond onder je voeten</em></h1>
+  <p class="lede">Tik programma-onderdelen aan om ze aan jouw weekend toe te voegen. Je keuze blijft in deze browser bewaard, ook na een refresh. Schema overgenomen van het <a href="https://gracelandfestival.nl/tijdschema/" target="_blank" rel="noopener">officiële blokkenschema</a> — check daar altijd de laatste wijzigingen.</p>
+</header>
+
+<div class="bar">
+  <div class="seg" role="tablist" aria-label="Weergave">
+    <button id="vSchema" role="tab" aria-selected="true">Blokkenschema</button>
+    <button id="vProg" role="tab" aria-selected="false">Programma</button>
+    <button id="vMine" role="tab" aria-selected="false">Mijn programma</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="status" id="status">Ingebouwd schema</span>
+  <button class="btn" id="btnSync" title="Nu opnieuw ophalen">Ververs</button>
+  <span class="saved" id="saved">bewaard</span>
+  <button class="btn" id="btnCopy">Kopieer als tekst</button>
+  <button class="btn" id="btnIcs">Agenda (.ics)</button>
+  <button class="btn ghost" id="btnClear">Wis alles</button>
+</div>
+
+<div class="bar" id="dayBar">
+  <span class="label">Dag</span>
+  <div id="tabs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  <div class="spacer"></div>
+  <span class="label">Breedte</span>
+  <div class="zoom" id="zoom">
+    <button data-z="1.4">Compact</button>
+    <button data-z="2.2" aria-pressed="true">Normaal</button>
+    <button data-z="3.2">Ruim</button>
+  </div>
+</div>
+
+<div class="bar" id="filterBar">
+  <span class="label">Soort</span>
+  <div id="chips" style="display:flex;gap:7px;flex-wrap:wrap"></div>
+  <div class="spacer"></div>
+  <input id="q" type="search" placeholder="Zoek in het programma…" autocomplete="off">
+</div>
+
+<div id="notice"></div>
+<main id="main"></main>
+
+<footer>
+  <p>Een persoonlijk hulpmiddel, geen officiële uitgave van Graceland Festival. Tijden kunnen wijzigen; het festival zelf blijft de bron. <span class="noprint">Je selectie staat alleen in deze browser — op een andere telefoon of laptop begin je opnieuw.</span></p>
+</footer>
+
+</div>
+
+<dialog id="detail"></dialog>
+
+<script>
+/* ============================================================
+   DATA — overgenomen uit de blokkenschema's per dag.
+   Elk item: [podium, titel, begin, eind, soort]
+   ============================================================ */
+const CATS = {
+  M:{n:'Muziek',       c:'#7A4E8C'},
+  S:{n:'Spreker',      c:'#2F5D8C'},
+  W:{n:'Workshop',     c:'#3E6B33'},
+  P:{n:'Performance',  c:'#A9691A'},
+  K:{n:'Kinderen',     c:'#B23A48'},
+  T:{n:'Tieners',      c:'#0F7A6E'},
+  V:{n:'Veld',         c:'#6B6A3A'},
+  O:{n:'Overig',       c:'#5A5A52'}
+};
+
+/* Bron van het live schema. Leeg = alleen het ingebouwde schema hieronder.
+   Vul hier de URL van je eigen schema.json in, bijvoorbeeld:
+   https://raw.githubusercontent.com/<jij>/<repo>/main/schema.json          */
+const SOURCE_URL = '';
+const MAX_AGE = 30 * 60 * 1000;   // niet vaker dan eens per half uur proberen
+
+let DAYS = [
+  {
+    key:'do', label:'Donderdag', date:'13 aug', iso:'20260813',
+    items:[
+      ['Grasland','Festivalopening','20:00','21:00','P'],
+      ['Grasland','RaveFlectie XL','22:00','23:30','M'],
+      ['Bospodium','Gracetalent','19:00','20:00','M'],
+      ['Bospodium','David Benjamin Blower','21:00','22:00','M'],
+      ['Vindplaats','Wim Eikelboom','19:00','20:00','S'],
+      ['Vindplaats','Ecologische bekering met Robert Doornenbal','21:00','22:00','S'],
+      ['Vindplaats','De dragende kracht van vriendschap','22:30','23:30','S'],
+      ['Circus','Graceland In the Round (GBJT-preview)','00:00','01:00','M'],
+      ['Graceland Bij Je Thuiskamer','Bier & Bezinning (GBJT-preview)','22:00','23:00','W'],
+      ['Graceland Bij Je Thuiskamer','Silent Disco','23:30','01:30','M'],
+      ['The Lounge','Idiot Club: The Lounge opening','19:00','19:45','T'],
+      ['The Lounge','Tiener Kampvuur','21:00','22:00','T'],
+      ['The Lounge','Bordspel Bonanza','22:00','00:00','T'],
+      ['Aan Tafel','Ecologische bekering met Robert Doornenbal','22:00','22:30','S'],
+      ['Aan Tafel','De mens en diens verhaal','23:00','00:00','W'],
+      ['Heilige Aard','Queer Reading','19:00','20:00','S'],
+      ['Stiltekapel','Getijdengebeden','20:30','20:45','W'],
+      ['Veld','Veldprogramma','17:30','02:00','V']
+    ]
+  },
+  {
+    key:'vr', label:'Vrijdag', date:'14 aug', iso:'20260814',
+    items:[
+      ['Grasland','Dynamische Meditatie','10:00','10:45','W'],
+      ['Grasland','Ligconcert door Annabel Laura','11:15','12:00','M'],
+      ['Grasland','Pride Picknick','13:00','14:00','P'],
+      ['Grasland','Fenster','15:00','16:00','M'],
+      ['Grasland','Broeder Dieleman','17:00','18:00','M'],
+      ['Grasland','Lucky Fonz III','19:00','20:00','M'],
+      ['Grasland','Joshua Luke Smith','21:00','22:00','M'],
+      ['Grasland','Arp Frique & The Perpetual Singers','23:00','00:00','M'],
+      ['Bospodium','Hanna Marieke','10:00','11:00','M'],
+      ['Bospodium','Tent of Nations met Daoud Nassar','12:00','13:00','S'],
+      ['Bospodium','J.M. Baccus','14:00','15:00','M'],
+      ['Bospodium','Andy Squyres','16:00','17:00','M'],
+      ['Bospodium','David Benjamin Blower','18:00','19:00','M'],
+      ['Bospodium','Chesron','20:00','21:00','M'],
+      ['Bospodium','Spull','22:00','23:00','M'],
+      ['Vindplaats','Herman Stomphorst: Kerkasiel Kampen','11:00','12:00','S'],
+      ['Vindplaats','Nadia Kroon','13:00','14:00','S'],
+      ['Vindplaats','Joline Jolink','15:00','16:00','S'],
+      ['Vindplaats','Lessen van de Majoor met Evert Jan Ouweneel en Margo Merts','17:00','18:00','S'],
+      ['Vindplaats','Verbonden Werelden','19:00','20:00','S'],
+      ['Vindplaats','Museum of Edible Earth','21:00','22:00','V'],
+      ['Circus','Meditate & Create','10:00','11:00','W'],
+      ['Circus','Familieopstelling','12:00','13:00','W'],
+      ['Circus','De Verwondering LIVE met Annemiek Schrijver','14:00','15:00','S'],
+      ['Circus','KLEM','16:00','17:00','P'],
+      ['Circus','Het Grote Graceland Dating Event: Over de Swipe','18:00','19:00','P'],
+      ['Circus','Het spookte in Zeeuws Vlaanderen: Broeder Dieleman','20:00','21:00','P'],
+      ['Circus','Rick de Gier','22:00','23:15','P'],
+      ['Circus','Graceland In the Round (GBJT-preview)','00:30','01:30','M'],
+      ['Graceland Bij Je Thuiskamer','Anton de Wit over G.K. Chesterton','10:00','11:00','S'],
+      ['Graceland Bij Je Thuiskamer','David Benjamin Blower','12:00','13:00','M'],
+      ['Graceland Bij Je Thuiskamer','Scheppings(t)rouw met Lysanne van de Kamp','14:00','15:00','S'],
+      ['Graceland Bij Je Thuiskamer','Wakkere Wijsheid met Geert Jan Blanken','16:00','17:00','S'],
+      ['Graceland Bij Je Thuiskamer','Jij bent gemaakt voor samen','18:00','19:00','W'],
+      ['Graceland Bij Je Thuiskamer','Is de Bijbel echt gebeurd?','20:00','21:00','S'],
+      ['Graceland Bij Je Thuiskamer','Andy Squyres: Poet Priest','22:00','23:00','S'],
+      ['Graceland Bij Je Thuiskamer','Silent Disco','00:00','02:00','M'],
+      ['Kinderdorp','Speelvlooien Circus','10:00','12:00','K'],
+      ['Kinderdorp','De Afvalkoningin','10:00','12:00','K'],
+      ['Kinderdorp','Het Eiland van Noach','14:30','17:00','K'],
+      ['Kinderdorp','Speelvlooien Circus','14:30','17:00','K'],
+      ['The Lounge','Open Atelier','12:00','14:00','T'],
+      ['The Lounge','Game On!','14:30','16:30','T'],
+      ['The Lounge','Creatieve workshops: Pin it, plant it','16:00','17:00','T'],
+      ['The Lounge','24-uurs Challenge','17:30','18:00','T'],
+      ['The Lounge','Jong Talent','19:30','21:00','T'],
+      ['The Lounge','Karaoke met Berend Koen','22:00','23:00','T'],
+      ['The Lounge','DJ Koen Kaptein','23:00','00:00','T'],
+      ['Aan Tafel','Ontbubbelboom: waar kom je thuis?','11:00','12:00','W'],
+      ['Aan Tafel','De grond onder je voeten','13:00','14:00','W'],
+      ['Aan Tafel','Ontbubbelboom: waar kom je thuis?','15:00','16:00','W'],
+      ['Aan Tafel','Museum of Edible Earth','17:00','18:00','V'],
+      ['Aan Tafel','Mosterd maken','19:00','20:00','W'],
+      ['Aan Tafel','Is de Bijbel echt gebeurd?','21:00','21:30','S'],
+      ['Aan Tafel','De mens en diens verhaal','23:00','00:00','W'],
+      ['De Werkelijkheid','Grond onder je relatie(s)','15:00','16:00','W'],
+      ['De Werkelijkheid','Pelgrimsadem: gaan over de aarde','19:00','20:00','P'],
+      ['Heilige Aard','Living Library','10:00','12:00','W'],
+      ['Heilige Aard','Kerkpijn','16:00','17:00','S'],
+      ['Heilige Aard','Queer Reading','18:00','19:00','S'],
+      ['Heilige Aard','Filmavond','21:00','23:00','P'],
+      ['Stiltekapel','Lichamelijk ontwaken','09:10','09:30','W'],
+      ['Stiltekapel','Getijdengebeden','09:30','09:45','W'],
+      ['Stiltekapel','Getijdengebeden','12:30','12:45','W'],
+      ['Stiltekapel','Getijdengebeden','20:30','20:45','W'],
+      ['Wilde nis','Scheppings(t)rouw Pelgrimstocht','16:00','17:00','V'],
+      ['Veld','Veldprogramma','09:00','02:00','V'],
+      ['Veld','De Afvalkoningin','14:00','16:30','K'],
+      ['Veld','De Afvalkoningin','19:30','21:30','K']
+    ]
+  },
+  {
+    key:'za', label:'Zaterdag', date:'15 aug', iso:'20260815',
+    items:[
+      ['Grasland','Yoga met Laurien','11:00','12:00','P'],
+      ['Grasland','Crys Matthews','13:00','14:00','M'],
+      ['Grasland','Hanne de Vries (GBJT-preview)','15:00','16:00','M'],
+      ['Grasland','Nynke Laverman','17:00','18:00','M'],
+      ['Grasland','Biki Baya','19:00','20:00','M'],
+      ['Grasland','Gerson Main','21:00','22:00','M'],
+      ['Grasland','Michelle David & The True-Tones','23:00','00:00','M'],
+      ['Bospodium','Be yaad avar','10:00','11:00','M'],
+      ['Bospodium','Wordbites Poetry Rave','12:00','13:00','P'],
+      ['Bospodium','Relatietherapie De Activisten en De Rest','14:00','15:00','S'],
+      ['Bospodium','Als God niet past','16:00','17:00','S'],
+      ['Bospodium','The Alt Mass met Lotte Pen','18:00','19:00','M'],
+      ['Bospodium','MONOGRAF','20:00','21:00','M'],
+      ['Bospodium','BEATS BY BUNKER','22:00','23:00','M'],
+      ['Vindplaats','Alle pioniers verzamelen','09:30','10:30','S'],
+      ['Vindplaats','Wie is jouw village? met Charissa Bakema','11:00','12:00','S'],
+      ['Vindplaats','Gert-Jan Segers','13:00','14:00','S'],
+      ['Vindplaats','Liturgie van de Tuin','15:00','16:00','S'],
+      ['Vindplaats','Wat ons draagt met Angela Stoof','17:00','17:45','S'],
+      ['Vindplaats','Alle pioniers verzamelen','17:45','18:30','S'],
+      ['Vindplaats','Boven en onder de grond met Henry Mentink en Theo Mulder','19:00','20:00','S'],
+      ['Vindplaats','Levensbeschouwelijke dialoog','21:00','22:30','S'],
+      ['Circus','Huid onder je handen','10:00','11:00','S'],
+      ['Circus','Mag ik zo vrij zijn?','11:45','13:00','P'],
+      ['Circus','De Grens met Company TiNaNiNaNi','14:00','14:30','P'],
+      ['Circus','De Grens: nagesprek met Said Touhami','14:30','15:00','P'],
+      ['Circus','Het Eiland van Noach','16:30','17:00','K'],
+      ['Circus','Parvaz: Een vlucht vooruit','18:00','19:00','P'],
+      ['Circus','Derek Otte: Landverrader','20:00','21:00','P'],
+      ['Circus','Comedynight met Berend Koen & Friends (GBJT-preview)','21:45','23:00','P'],
+      ['Circus','Graceland In the Round (GBJT-preview)','00:30','01:30','M'],
+      ['Graceland Bij Je Thuiskamer','Nu Zeg Ik Alles met Soraya Wunnink (GBJT-preview)','10:00','11:00','P'],
+      ['Graceland Bij Je Thuiskamer','Regeneratie met Henrike Gootjes','12:00','13:00','S'],
+      ['Graceland Bij Je Thuiskamer','The Alt Mass met Lotte Pen','14:00','15:00','M'],
+      ['Graceland Bij Je Thuiskamer','Nieuwe Rituelen','16:00','17:00','S'],
+      ['Graceland Bij Je Thuiskamer','Nederland Therapieland met Katie Vlaardingerbroek','18:00','19:00','S'],
+      ['Graceland Bij Je Thuiskamer','David Benjamin Blower: The Lord’s Prayer','20:00','21:00','S'],
+      ['Graceland Bij Je Thuiskamer','Silent Disco','00:00','02:00','M'],
+      ['Kinderdorp','Dromen voor de aarde','10:00','12:00','K'],
+      ['Kinderdorp','Het Eiland van Noach','10:00','12:00','K'],
+      ['Kinderdorp','Speelvlooien Circus','10:00','12:00','K'],
+      ['Kinderdorp','Het Eiland van Noach','14:30','17:00','K'],
+      ['The Lounge','Open Atelier','12:00','14:00','T'],
+      ['The Lounge','Workshop: Band voor een dag','12:00','14:00','T'],
+      ['The Lounge','Game On!','14:30','16:30','T'],
+      ['The Lounge','Workshop door Company TiNaNiNaNi','16:00','17:00','T'],
+      ['The Lounge','24-uurs Challenge','17:30','18:00','T'],
+      ['The Lounge','Gezamenlijke maaltijd','17:30','19:00','T'],
+      ['The Lounge','Workshop: Band voor een dag','19:00','20:00','T'],
+      ['The Lounge','Creatieve workshops: Pin it, plant it','20:00','21:00','T'],
+      ['The Lounge','Game On!','20:00','21:30','T'],
+      ['The Lounge','Joshua Luke Smith Meet & Greet','22:00','23:00','T'],
+      ['Aan Tafel','Wie is jouw village? met Charissa Bakema','12:00','12:30','S'],
+      ['Aan Tafel','Keltische spiritualiteit','14:00','15:00','S'],
+      ['Aan Tafel','Relatietherapie De Activisten en De Rest','15:00','15:30','S'],
+      ['Aan Tafel','Hanne de Vries (GBJT-preview)','16:30','17:00','M'],
+      ['Aan Tafel','Boven en onder de grond met Henry Mentink en Theo Mulder','20:00','20:30','S'],
+      ['Aan Tafel','Derek Otte: Landverrader','21:00','21:30','P'],
+      ['Aan Tafel','De mens en diens verhaal','23:00','00:00','W'],
+      ['De Werkelijkheid','Grond onder je relatie(s)','15:00','16:00','W'],
+      ['De Werkelijkheid','Pelgrimsadem: gaan over de aarde','19:00','20:00','P'],
+      ['Heilige Aard','Roots Zine','10:00','11:00','W'],
+      ['Heilige Aard','Dansworkshop','14:00','15:00','W'],
+      ['Heilige Aard','Queer Reading','18:00','19:00','S'],
+      ['Heilige Aard','Live Podcast: Imago Queer','20:00','21:30','M'],
+      ['Stiltekapel','Lichamelijk ontwaken','09:10','09:30','W'],
+      ['Stiltekapel','Getijdengebeden','09:30','09:45','W'],
+      ['Stiltekapel','Getijdengebeden','12:30','12:45','W'],
+      ['Stiltekapel','Getijdengebeden','20:30','20:45','W'],
+      ['Wilde nis','Scheppings(t)rouw Pelgrimstocht','13:00','14:00','V'],
+      ['Wilde nis','Scheppings(t)rouw Pelgrimstocht','15:00','16:00','V'],
+      ['Wilde nis','Holotropic','19:00','20:00','M'],
+      ['Wilde nis','Alissasilla','20:00','22:00','M'],
+      ['Wilde nis','Ezra','22:00','00:00','M'],
+      ['Veld','Veldprogramma','09:00','02:00','V'],
+      ['Veld','Carla Leurs','00:15','01:00','M']
+    ]
+  },
+  {
+    key:'zo', label:'Zondag', date:'16 aug', iso:'20260816',
+    items:[
+      ['Grasland','Festivalsluiting','11:00','12:30','P'],
+      ['Stiltekapel','Getijdengebeden','09:30','09:45','W'],
+      ['Veld','Veldprogramma','09:00','14:00','V']
+    ]
+  }
+];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const toMin = s => { const [h,m] = s.split(':').map(Number); let t = h*60+m; if(h < 6) t += 1440; return t; };
+const fmt = t => { const h = Math.floor(t/60)%24, m = t%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); };
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function prepare(days){
+  days.forEach(d => {
+    d.stages = [];
+    d.events = d.items.map(([stage,title,st,en,cat,slug]) => {
+      if(!d.stages.includes(stage)) d.stages.push(stage);
+      return { id: d.key+'|'+stage+'|'+title+'|'+st, day:d.key, stage, title, st, en,
+               cat: CATS[cat] ? cat : 'O', slug: slug || null,
+               a: toMin(st), b: toMin(en) };
+    });
+    d.min = Math.min(...d.events.map(e => e.a));
+    d.max = Math.max(...d.events.map(e => e.b));
+  });
+  return days;
+}
+const EMBEDDED_DAYS = DAYS;
+prepare(DAYS);
+
+/* ============================================================
+   OPSLAG — window.storage (artifact) met localStorage als terugval
+   ============================================================ */
+const KEY  = 'graceland2026:selectie';
+const CKEY = 'graceland2026:schema';
+const mem = {};
+const store = {
+  async get(k){
+    if(window.storage){ try{ const r = await window.storage.get(k); if(r && r.value) return r.value; }catch(e){} }
+    try{ const v = localStorage.getItem(k); if(v) return v; }catch(e){}
+    return mem[k] || null;
+  },
+  async set(k, v){
+    mem[k] = v;
+    if(window.storage){ try{ await window.storage.set(k, v); return; }catch(e){} }
+    try{ localStorage.setItem(k, v); }catch(e){}
+  }
+};
+
+let picked = new Set();
+let activeDay = 'do';
+let view = 'schema';
+let ppm = 2.2;
+let filters = new Set();   // leeg = alles tonen
+
+let PROGRAMS = {};                 // slug -> beschrijving, links, afbeelding
+let dataState = { mode:'embedded', at:null, err:null, checking:false };
+let changes = [];
+
+let saveTimer = null;
+function save(){
+  store.set(KEY, JSON.stringify([...picked]));
+  const el = document.getElementById('saved');
+  el.classList.add('show');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+/* ============================================================
+   CONFLICTEN
+   ============================================================ */
+function clashSet(){
+  const out = new Set();
+  DAYS.forEach(d => {
+    const sel = d.events.filter(e => picked.has(e.id) && e.title !== 'Veldprogramma');
+    for(let i=0;i<sel.length;i++) for(let j=i+1;j<sel.length;j++){
+      if(sel[i].a < sel[j].b && sel[j].a < sel[i].b){ out.add(sel[i].id); out.add(sel[j].id); }
+    }
+  });
+  return out;
+}
+
+/* ============================================================
+   LIVE SCHEMA — eens per half uur ophalen, anders uit cache
+   ============================================================ */
+function applyData(json, at, stale){
+  const before = [...picked];
+  DAYS = prepare(JSON.parse(JSON.stringify(json.days)));
+  PROGRAMS = json.programs || {};
+  migrate(before);
+  dataState.mode = stale ? 'cache' : 'live';
+  dataState.at = at;
+  if(!DAYS.some(d => d.key === activeDay)) activeDay = DAYS[0].key;
+}
+
+/* Keuzes overleven een gewijzigd schema: verplaatste onderdelen krijgen
+   hun nieuwe tijd, geschrapte onderdelen worden gemeld en verwijderd. */
+function migrate(before){
+  const all = new Map();
+  DAYS.forEach(d => d.events.forEach(e => all.set(e.id, e)));
+  const next = new Set();
+  changes = [];
+  before.forEach(id => {
+    if(all.has(id)){ next.add(id); return; }
+    const [day, , title] = id.split('|');
+    const hits = [...all.values()].filter(e => e.day === day && e.title === title);
+    if(hits.length === 1){
+      next.add(hits[0].id);
+      const old = id.split('|');
+      changes.push({ kind:'moved', title,
+        from: `${old[3]} · ${old[1]}`, to: `${hits[0].st} · ${hits[0].stage}` });
+    } else {
+      changes.push({ kind:'gone', title, from: id.split('|')[3] });
+    }
+  });
+  picked = next;
+  if(changes.length) save();
+}
+
+async function loadRemote(force){
+  if(!SOURCE_URL) return;
+  let cache = null;
+  try{ cache = JSON.parse(await store.get(CKEY) || 'null'); }catch(e){}
+  if(cache && cache.data){ applyData(cache.data, cache.at, true); render(); }
+
+  const now = Date.now();
+  if(!force && cache && now - (cache.lastTry || 0) < MAX_AGE) return;
+
+  dataState.checking = true; render();
+  try{
+    const url = SOURCE_URL + (SOURCE_URL.includes('?') ? '&' : '?') + 'v=' + Math.floor(now / MAX_AGE);
+    const res = await fetch(url, { cache:'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if(!json || !Array.isArray(json.days) || !json.days.length) throw new Error('onbruikbaar bestand');
+    if(!json.days.every(d => Array.isArray(d.items) && d.items.length)) throw new Error('lege dag in bestand');
+    await store.set(CKEY, JSON.stringify({ data:json, at:now, lastTry:now }));
+    dataState.err = null;
+    applyData(json, now, false);
+  }catch(err){
+    dataState.err = err.message || 'netwerkfout';
+    await store.set(CKEY, JSON.stringify(Object.assign({}, cache || {}, { lastTry: now })));
+  }finally{
+    dataState.checking = false;
+    render();
+  }
+}
+
+function renderStatus(){
+  const el = document.getElementById('status');
+  if(!SOURCE_URL){ el.textContent = 'Ingebouwd schema'; el.className = 'status'; return; }
+  if(dataState.checking){ el.textContent = 'Bijwerken…'; el.className = 'status'; return; }
+  if(dataState.err && dataState.mode === 'embedded'){
+    el.textContent = 'Bijwerken mislukt — ingebouwd schema';
+    el.className = 'status warn'; el.title = dataState.err; return;
+  }
+  if(dataState.err){
+    el.textContent = 'Bijwerken mislukt — laatst opgehaald ' + when(dataState.at);
+    el.className = 'status warn'; el.title = dataState.err; return;
+  }
+  if(dataState.mode === 'embedded'){ el.textContent = 'Ingebouwd schema'; el.className = 'status'; return; }
+  el.textContent = 'Schema van ' + when(dataState.at);
+  el.className = 'status ok'; el.title = '';
+}
+
+function when(ts){
+  if(!ts) return 'onbekend';
+  const d = new Date(ts), n = new Date();
+  const t = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  return d.toDateString() === n.toDateString() ? t + ' vandaag'
+    : d.getDate() + ' ' + ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'][d.getMonth()] + ', ' + t;
+}
+
+function renderChanges(){
+  const el = document.getElementById('notice');
+  if(!changes.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="notice">
+    <b>Het schema is gewijzigd</b>
+    <ul>${changes.map(c => c.kind === 'moved'
+      ? `<li><strong>${esc(c.title)}</strong> is verplaatst: ${esc(c.from)} → ${esc(c.to)}</li>`
+      : `<li><strong>${esc(c.title)}</strong> (${esc(c.from)}) staat niet meer in het schema en is uit je programma gehaald</li>`
+    ).join('')}</ul>
+    <button class="btn" id="okChanges">Gezien</button></div>`;
+  document.getElementById('okChanges').onclick = () => { changes = []; renderChanges(); };
+}
+
+/* ============================================================
+   PROGRAMMA — bladeren en beschrijvingen
+   ============================================================ */
+function occurrencesOf(slug){
+  const out = [];
+  DAYS.forEach(d => d.events.forEach(e => { if(e.slug === slug) out.push({d,e}); }));
+  return out.sort((x,y) => DAYS.indexOf(x.d) - DAYS.indexOf(y.d) || x.e.a - y.e.a);
+}
+
+function chipRow(slug){
+  const occ = occurrencesOf(slug);
+  if(!occ.length) return `<span class="cont">Doorlopend · geen vaste tijd</span>`;
+  return occ.map(({d,e}) => `<button class="occ ${picked.has(e.id)?'on':''}"
+    data-id="${esc(e.id)}">${d.label.slice(0,2)} ${e.st} · ${esc(e.stage)}</button>`).join('');
+}
+
+function wireOcc(root){
+  root.querySelectorAll('.occ').forEach(b => b.onclick = () => {
+    const id = b.dataset.id;
+    picked.has(id) ? picked.delete(id) : picked.add(id);
+    save();
+    b.classList.toggle('on');
+    renderTabs();
+  });
+}
+
+function renderProgramma(){
+  const host = document.getElementById('main');
+  const slugs = Object.keys(PROGRAMS);
+  if(!slugs.length){
+    host.innerHTML = `<div class="mine"><div class="empty">
+      <b>Nog geen beschrijvingen</b>
+      Die komen uit het live schema. Zet ${SOURCE_URL ? 'de verbinding aan de praat' :
+      'bovenin het bestand een SOURCE_URL'} en ze verschijnen hier.</div></div>`;
+    return;
+  }
+  const qEl = document.getElementById('q');
+  const q = (qEl ? qEl.value : '').trim().toLowerCase();
+
+  const rows = slugs.map(slug => Object.assign({slug}, PROGRAMS[slug]))
+    .filter(p => {
+      const code = catOf(p);
+      if(filters.size && !filters.has(code)) return false;
+      if(!q) return true;
+      return (p.title + ' ' + (p.cats||[]).join(' ') + ' ' + (p.partners||[]).join(' ')
+              + ' ' + (p.body||[]).join(' ')).toLowerCase().includes(q);
+    })
+    .sort((a,b) => a.title.localeCompare(b.title, 'nl'));
+
+  if(!rows.length){
+    host.innerHTML = `<div class="mine"><div class="empty"><b>Niets gevonden</b>
+      Probeer een andere zoekterm of zet de filters uit.</div></div>`;
+    return;
+  }
+
+  host.innerHTML = `<p class="hint">${rows.length} van ${slugs.length} programma's</p>
+  <div class="proglist">${rows.map(p => `
+    <article class="prog">
+      ${p.image ? `<img class="thumb" loading="lazy" src="${esc(p.image)}" alt="">`
+                : `<div class="thumb ph" style="background:${CATS[catOf(p)].c}22"></div>`}
+      <div class="pbody">
+        <h3>${esc(p.title)}</h3>
+        <p class="tags">${[...(p.cats||[]), ...(p.partners||[])]
+          .map(t => `<span>${esc(t)}</span>`).join('')}</p>
+        ${p.body && p.body[0] ? `<p class="lead">${esc(p.body[0])}</p>` : ''}
+        <div class="occs">${chipRow(p.slug)}</div>
+        <button class="more" data-slug="${esc(p.slug)}">Lees meer</button>
+      </div>
+    </article>`).join('')}</div>`;
+
+  wireOcc(host);
+  host.querySelectorAll('.more').forEach(b => b.onclick = () => openDetail(b.dataset.slug));
+}
+
+function catOf(p){
+  const order = ['Kinderen','Tieners','Muziek','Performance','Spreker','Workshop','Veld'];
+  const code = {Kinderen:'K',Tieners:'T',Muziek:'M',Performance:'P',Spreker:'S',Workshop:'W',Veld:'V'};
+  for(const n of order) if((p.cats||[]).includes(n)) return code[n];
+  return 'O';
+}
+
+function openDetail(slug){
+  const p = PROGRAMS[slug];
+  if(!p) return;
+  const dlg = document.getElementById('detail');
+  dlg.innerHTML = `
+    <button class="x" id="closeDetail" aria-label="Sluiten">×</button>
+    ${p.image ? `<img class="hero" src="${esc(p.image)}" alt="">` : ''}
+    <div class="dbody">
+      <h2>${esc(p.title)}</h2>
+      <p class="tags">${[...(p.cats||[]), ...(p.partners||[])]
+        .map(t => `<span>${esc(t)}</span>`).join('')}</p>
+      <div class="occs">${chipRow(slug)}</div>
+      ${(p.body||[]).map(t => `<p>${esc(t)}</p>`).join('')}
+      ${(p.links||[]).length ? `<p class="dlinks">${p.links.map(l =>
+        `<a href="${esc(l)}" target="_blank" rel="noopener">${esc(hostOf(l))}</a>`).join('')}</p>` : ''}
+      ${p.url ? `<p class="dlinks"><a href="${esc(p.url)}" target="_blank" rel="noopener">Op gracelandfestival.nl</a></p>` : ''}
+    </div>`;
+  wireOcc(dlg);
+  dlg.querySelector('#closeDetail').onclick = () => dlg.close();
+  dlg.onclick = ev => { if(ev.target === dlg) dlg.close(); };
+  dlg.showModal();
+}
+
+function hostOf(u){
+  try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; }
+}
+
+/* ============================================================
+   RENDER — tabs & chips
+   ============================================================ */
+function renderTabs(){
+  const host = document.getElementById('tabs');
+  host.innerHTML = DAYS.map(d => {
+    const n = d.events.filter(e => picked.has(e.id)).length;
+    return `<button class="tab" role="tab" data-day="${d.key}" aria-selected="${d.key===activeDay}">
+      ${d.label} <span class="d">${d.date}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
+  }).join('');
+  host.querySelectorAll('.tab').forEach(b => b.onclick = () => { activeDay = b.dataset.day; render(); });
+}
+
+function renderChips(){
+  const host = document.getElementById('chips');
+  host.innerHTML = Object.entries(CATS).map(([k,v]) =>
+    `<button class="chip" data-cat="${k}" aria-pressed="${filters.has(k)}"><span class="dot" style="background:${v.c}"></span>${v.n}</button>`
+  ).join('') + `<button class="chip" data-cat="__all" aria-pressed="false">Alles tonen</button>`;
+  host.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    const c = b.dataset.cat;
+    if(c === '__all') filters.clear();
+    else filters.has(c) ? filters.delete(c) : filters.add(c);
+    render();
+  });
+}
+
+/* ============================================================
+   RENDER — blokkenschema
+   ============================================================ */
+function laneAssign(evts){
+  const lanes = [];
+  evts.slice().sort((x,y) => x.a - y.a || y.b - x.b).forEach(e => {
+    let i = 0;
+    while(lanes[i] && lanes[i] > e.a) i++;
+    lanes[i] = e.b;
+    e.lane = i;
+  });
+  return lanes.length || 1;
+}
+
+function renderSchema(){
+  const d = DAYS.find(x => x.key === activeDay);
+  const clash = clashSet();
+  const start = Math.floor(d.min/60)*60;
+  const end = Math.ceil(d.max/60)*60;
+  const W = (end - start) * ppm;
+
+  let ruler = '';
+  for(let t = start; t <= end; t += 30){
+    const x = (t - start) * ppm;
+    const hr = t % 60 === 0;
+    ruler += `<div class="tick ${hr?'hr':''}" style="left:${x}px">${hr ? `<b>${fmt(t)}</b>` : ''}</div>`;
+  }
+
+  let gl = '';
+  for(let t = start; t <= end; t += 30){
+    gl += `<div class="gridline ${t%60===0?'hr':''}" style="left:${(t-start)*ppm}px"></div>`;
+  }
+
+  const rows = d.stages.map(stage => {
+    const evts = d.events.filter(e => e.stage === stage);
+    const nLanes = laneAssign(evts);
+    const h = nLanes * 46 + 8;
+    const blocks = evts.map(e => {
+      const x = (e.a - start) * ppm;
+      const w = Math.max((e.b - e.a) * ppm - 3, 34);
+      const on = picked.has(e.id);
+      const dim = filters.size && !filters.has(e.cat);
+      const cls = ['block', on?'on':'', clash.has(e.id)?'clash':'', dim?'dim':'', w < 82 ? 'narrow':''].filter(Boolean).join(' ');
+      return `<button class="${cls}" data-id="${esc(e.id)}"
+        style="left:${x}px;width:${w}px;top:${e.lane*46+4}px;height:42px;--ac:${CATS[e.cat].c};--bg:${on?'':CATS[e.cat].c+'1a'};--bd:${on?'':CATS[e.cat].c+'55'}"
+        aria-pressed="${on}" title="${esc(e.title)} · ${e.st}–${e.en} · ${esc(stage)}">
+        <span class="t">${esc(e.title)}</span><span class="h">${e.st}–${e.en}</span>
+        ${e.slug && PROGRAMS[e.slug] && w >= 96 ? `<span class="info" data-slug="${esc(e.slug)}" role="button" tabindex="0" title="Meer over ${esc(e.title)}">i</span>` : ''}</button>`;
+    }).join('');
+    return `<div class="row">
+      <div class="lane" style="height:${h}px"><div class="nm">${esc(stage)}<span>${evts.length} item${evts.length===1?'':'s'}</span></div></div>
+      <div class="track" style="width:${W}px;height:${h}px">${gl}${blocks}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('main').innerHTML = `
+    <div class="scroller" id="scroller"><div class="sheet">
+      <div class="row rulerrow"><div class="lane"></div>
+        <div class="ruler" style="width:${W}px">${ruler}</div></div>
+      ${rows}
+    </div></div>
+    <p class="hint">Tik een blok aan om het aan je programma toe te voegen · ⚠ betekent dat twee keuzes elkaar overlappen</p>`;
+
+  document.querySelectorAll('.block').forEach(b => b.onclick = ev => {
+    if(ev.target.classList.contains('info')){
+      ev.stopPropagation(); openDetail(ev.target.dataset.slug); return;
+    }
+    const id = b.dataset.id;
+    picked.has(id) ? picked.delete(id) : picked.add(id);
+    save(); render(true);
+  });
+}
+
+/* ============================================================
+   RENDER — mijn programma (grondprofiel + lijst)
+   ============================================================ */
+function renderMine(){
+  const clash = clashSet();
+  const total = [...picked].length;
+  if(!total){
+    document.getElementById('main').innerHTML = `
+      <div class="mine"><div class="empty">
+        <b>Nog niets gekozen</b>
+        Ga naar het blokkenschema en tik aan waar je heen wilt. Je selectie verschijnt hier als weekendplanning.
+      </div></div>`;
+    return;
+  }
+
+  const html = DAYS.map(d => {
+    const sel = d.events.filter(e => picked.has(e.id)).sort((x,y) => x.a - y.a || x.b - y.b);
+    if(!sel.length) return '';
+    const lo = Math.floor(Math.min(...sel.map(e => e.a))/60)*60;
+    const hi = Math.ceil(Math.max(...sel.map(e => e.b))/60)*60;
+    const span = Math.max(hi - lo, 60);
+    const H = Math.max(sel.length * 58, 170);
+
+    const layers = sel.map(e => {
+      const top = (e.a - lo) / span * H;
+      const hgt = Math.max((e.b - e.a) / span * H, 3);
+      return `<div class="layer" style="top:${top}px;height:${hgt}px;--ac:${CATS[e.cat].c};opacity:.85"></div>`;
+    }).join('');
+    const marks = [];
+    for(let t = lo; t <= hi; t += 180) marks.push(`<span class="hr" style="top:${(t-lo)/span*H - 6}px">${fmt(t)}</span>`);
+
+    let list = '', prev = null;
+    sel.forEach(e => {
+      if(prev && e.a - prev > 45) list += `<div class="gap">${Math.floor((e.a-prev)/60)}u ${(e.a-prev)%60 ? (e.a-prev)%60+'m' : ''} vrij</div>`;
+      prev = Math.max(prev ?? 0, e.b);
+      list += `<div class="item ${clash.has(e.id)?'clash':''}">
+        <span class="when">${e.st}–${e.en}</span>
+        <span class="what">${e.slug && PROGRAMS[e.slug]
+          ? `<a class="dt" data-slug="${esc(e.slug)}">${esc(e.title)}</a>` : esc(e.title)}
+          <small>${esc(e.stage)} · ${CATS[e.cat].n}</small></span>
+        <button class="rm" data-id="${esc(e.id)}" title="Verwijderen" aria-label="Verwijder ${esc(e.title)}">×</button>
+      </div>`;
+    });
+
+    return `<section class="dayblock">
+      <div class="core" style="height:${H}px">${layers}${marks.join('')}</div>
+      <div>
+        <h2 class="daytitle">${d.label} ${d.date}</h2>
+        <p class="daymeta">${sel.length} onderdeel${sel.length===1?'':'en'} · ${fmt(sel[0].a)} tot ${fmt(Math.max(...sel.map(e=>e.b)))}</p>
+        ${list}
+      </div>
+    </section>`;
+  }).join('');
+
+  document.getElementById('main').innerHTML = `<div class="mine">${html}</div>`;
+  document.querySelectorAll('.rm').forEach(b => b.onclick = () => {
+    picked.delete(b.dataset.id); save(); render();
+  });
+  document.querySelectorAll('.dt').forEach(a => a.onclick = () => openDetail(a.dataset.slug));
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function selectedSorted(){
+  const out = [];
+  DAYS.forEach(d => d.events.filter(e => picked.has(e.id))
+    .sort((x,y) => x.a - y.a).forEach(e => out.push({d,e})));
+  return out;
+}
+
+function asText(){
+  let s = 'Mijn Graceland Festival 2026 — Grond onder je Voeten\n';
+  DAYS.forEach(d => {
+    const sel = d.events.filter(e => picked.has(e.id)).sort((x,y) => x.a - y.a);
+    if(!sel.length) return;
+    s += `\n${d.label} ${d.date}\n`;
+    sel.forEach(e => { s += `  ${e.st}–${e.en}  ${e.title} — ${e.stage}\n`; });
+  });
+  return s;
+}
+
+function icsEscape(s){ return s.replace(/[\\;,]/g, m => '\\'+m).replace(/\n/g,'\\n'); }
+
+function asIcs(){
+  const pad = n => String(n).padStart(2,'0');
+  const stamp = t => {
+    const h = Math.floor(t/60), m = t%60;
+    return { dayShift: h >= 24 ? 1 : 0, hh: pad(h%24), mm: pad(m) };
+  };
+  const shiftIso = (iso, plus) => {
+    const dt = new Date(+iso.slice(0,4), +iso.slice(4,6)-1, +iso.slice(6,8) + plus);
+    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}`;
+  };
+  let out = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mijn Graceland 2026//NL','CALSCALE:GREGORIAN'];
+  selectedSorted().forEach(({d,e}, i) => {
+    const s = stamp(e.a), t = stamp(e.b);
+    out.push('BEGIN:VEVENT',
+      `UID:graceland2026-${i}-${Date.now()}@local`,
+      `DTSTART:${shiftIso(d.iso, s.dayShift)}T${s.hh}${s.mm}00`,
+      `DTEND:${shiftIso(d.iso, t.dayShift)}T${t.hh}${t.mm}00`,
+      `SUMMARY:${icsEscape(e.title)}`,
+      `LOCATION:${icsEscape(e.stage + ', Landgoed Velder, Liempde')}`,
+      `DESCRIPTION:${icsEscape(CATS[e.cat].n + ' — Graceland Festival 2026')}`,
+      'END:VEVENT');
+  });
+  out.push('END:VCALENDAR');
+  return out.join('\r\n');
+}
+
+function download(name, text, mime){
+  const blob = new Blob([text], {type: mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+
+/* ============================================================
+   HOOFDRENDER
+   ============================================================ */
+function render(keepScroll){
+  const sc = document.getElementById('scroller');
+  const x = keepScroll && sc ? sc.scrollLeft : 0;
+  renderTabs();
+  renderStatus();
+  renderChanges();
+  document.getElementById('btnSync').style.display = SOURCE_URL ? '' : 'none';
+  document.getElementById('vSchema').setAttribute('aria-selected', view === 'schema');
+  document.getElementById('vProg').setAttribute('aria-selected', view === 'programma');
+  document.getElementById('vMine').setAttribute('aria-selected', view === 'mine');
+  document.getElementById('dayBar').style.display = view === 'schema' ? '' : 'none';
+  document.getElementById('filterBar').style.display = view === 'mine' ? 'none' : '';
+  document.getElementById('q').style.display = view === 'programma' ? '' : 'none';
+  const none = picked.size === 0;
+  document.getElementById('btnCopy').disabled = none;
+  document.getElementById('btnIcs').disabled = none;
+  document.getElementById('btnClear').disabled = none;
+  if(view === 'schema') renderSchema();
+  else if(view === 'programma') renderProgramma();
+  else renderMine();
+  const sc2 = document.getElementById('scroller');
+  if(sc2 && x) sc2.scrollLeft = x;
+  document.querySelectorAll('#chips .chip').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.cat === '__all' ? filters.size === 0 : filters.has(b.dataset.cat));
+  });
+}
+
+document.getElementById('vSchema').onclick = () => { view = 'schema';    render(); };
+document.getElementById('vProg').onclick   = () => { view = 'programma'; render(); };
+document.getElementById('vMine').onclick   = () => { view = 'mine';      render(); };
+document.getElementById('q').oninput = () => { if(view === 'programma') renderProgramma(); };
+
+document.getElementById('zoom').querySelectorAll('button').forEach(b => b.onclick = () => {
+  ppm = parseFloat(b.dataset.z);
+  document.getElementById('zoom').querySelectorAll('button')
+    .forEach(x => x.setAttribute('aria-pressed', x === b));
+  render();
+});
+
+document.getElementById('btnCopy').onclick = async e => {
+  const txt = asText();
+  try{ await navigator.clipboard.writeText(txt); e.target.textContent = 'Gekopieerd'; }
+  catch(err){ download('mijn-graceland-2026.txt', txt, 'text/plain'); e.target.textContent = 'Gedownload'; }
+  setTimeout(() => e.target.textContent = 'Kopieer als tekst', 1600);
+};
+document.getElementById('btnIcs').onclick = () =>
+  download('mijn-graceland-2026.ics', asIcs(), 'text/calendar');
+document.getElementById('btnClear').onclick = () => {
+  if(!confirm('Alle keuzes wissen?')) return;
+  picked.clear(); save(); render();
+};
+
+document.getElementById('btnSync').onclick = () => loadRemote(true);
+
+(async function init(){
+  renderChips();
+  const raw = await store.get(KEY);
+  if(raw){ try{ picked = new Set(JSON.parse(raw)); }catch(e){} }
+  render();
+  loadRemote(false);
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') loadRemote(false);
+  });
+})();
+</script>
+</body>
+</html>

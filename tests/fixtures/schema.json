@@ -1,0 +1,23 @@
+{"generated":"2026-08-10T15:00:00+02:00","source":"https://gracelandfestival.nl/programma/",
+ "days":[
+  {"key":"do","label":"Donderdag","date":"13 aug","iso":"20260813","items":[
+    ["Grasland","Festivalopening","20:00","21:00","P","festivalopening"]]},
+  {"key":"vr","label":"Vrijdag","date":"14 aug","iso":"20260814","items":[
+    ["Grasland","Lucky Fonz III","19:00","20:00","M","lucky-fonz-iii"],
+    ["Bospodium","Spull","22:00","23:00","M","spull"]]},
+  {"key":"za","label":"Zaterdag","date":"15 aug","iso":"20260815","items":[
+    ["Grasland","Nynke Laverman","17:30","18:30","M","nynke-laverman"],
+    ["Wilde nis","Ezra","22:00","00:00","M","ezra"]]},
+  {"key":"zo","label":"Zondag","date":"16 aug","iso":"20260816","items":[
+    ["Grasland","Festivalsluiting","11:00","12:30","P","festivalsluiting"]]}],
+ "always":[{"slug":"labyrint","title":"Labyrint","cat":"V"}],
+ "programs":{
+  "nynke-laverman":{"title":"Nynke Laverman","url":"https://x/1","image":"https://x/1.jpg",
+    "cats":["Muziek"],"partners":[],"when":[{"day":"za","st":"17:30","en":"18:30","stage":"Grasland"}],
+    "body":["Alinea een.","Alinea twee."],"links":["https://open.spotify.com/artist/1"]},
+  "ezra":{"title":"Ezra","url":"https://x/2","image":null,"cats":["Muziek"],"partners":[],
+    "when":[{"day":"za","st":"22:00","en":"00:00","stage":"Wilde nis"}],"body":["Nachtset."],"links":[]},
+  "labyrint":{"title":"Labyrint","url":"https://x/3","image":null,"cats":["Veld"],
+    "partners":["Protestantse Kerk Nederland"],"when":[],"body":["Doorlopend te lopen."],"links":[]},
+  "lucky-fonz-iii":{"title":"Lucky Fonz III","url":"https://x/4","image":null,"cats":["Muziek"],
+    "partners":[],"when":[{"day":"vr","st":"19:00","en":"20:00","stage":"Grasland"}],"body":["Liedjes."],"links":[]}}}

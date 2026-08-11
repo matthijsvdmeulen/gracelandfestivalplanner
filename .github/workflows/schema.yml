@@ -1,0 +1,77 @@
+# .github/workflows/schema.yml
+#
+# Haalt elk half uur het programma op en publiceert de planner op GitHub Pages.
+# Omdat index.html en schema.json op dezelfde origin staan, is er geen CORS
+# nodig - de fetch in de planner is gewoon een relatief pad.
+#
+# Eenmalig instellen: Settings -> Pages -> Source: "GitHub Actions".
+
+name: Schema bijwerken en publiceren
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write        # om schema.json en de cache terug te committen
+  pages: write
+  id-token: write
+
+concurrency:
+  group: graceland-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests beautifulsoup4
+
+      - name: Programma ophalen
+        run: python scrape_graceland.py --out schema.json
+
+      # De beschrijvingencache meecommitten: een volgende run hoeft dan alleen
+      # nieuwe detailpagina's op te halen in plaats van alle ~130.
+      - name: Wijzigingen terugcommitten
+        run: |
+          if git diff --quiet -- schema.json .graceland-cache.json; then
+            echo "Geen wijzigingen."
+            exit 0
+          fi
+          git config user.name  "schema-bot"
+          git config user.email "actions@github.com"
+          git add schema.json .graceland-cache.json
+          git commit -m "Schema bijgewerkt $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git pull --rebase --autostash
+          git push
+
+      # De planner staat generiek in de repo (SOURCE_URL is leeg); hier wordt
+      # het relatieve pad naar schema.json ingevuld voor de gepubliceerde versie.
+      - name: Site samenstellen
+        run: |
+          mkdir -p _site
+          sed "s|const SOURCE_URL = '';|const SOURCE_URL = './schema.json';|" \
+            planner.html > _site/index.html
+          cp schema.json _site/schema.json
+          cp CNAME _site/CNAME
+          grep -q "'./schema.json'" _site/index.html \
+            || { echo "SOURCE_URL niet ingevuld - is die regel gewijzigd?"; exit 1; }
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
