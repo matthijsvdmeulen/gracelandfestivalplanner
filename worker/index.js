@@ -25,13 +25,16 @@
 
 const MAX_IDS = 400;        // ruim boven een vol weekend
 const MAX_ID_LEN = 300;
-const MAX_PEOPLE = 10;      // meer kolommen worden onleesbaar in "Samen"
+const MAX_PEOPLE = 24;      // zie README: hierboven knelt de KV-quota eerder dan de opmaak
 const MAX_NAME = 40;
 const MIN_CODE = 6;
 
-/* Kleuren in dezelfde tint als de planner. Op volgorde toegekend. */
+/* Kleuren in dezelfde tint als de planner, op volgorde toegekend. Dezelfde
+   lijst staat in planner.html; houd ze gelijk. Bij meer dan twaalf mensen
+   herhalen ze zich - de naam blijft dan het echte onderscheid. */
 const COLORS = ["#2F5D8C", "#7A4E8C", "#A9691A", "#B23A48",
-                "#3E6B33", "#0F7A6E", "#8C5A2F", "#5A5A52"];
+                "#3E6B33", "#0F7A6E", "#8C5A2F", "#5A5A52",
+                "#1F6F8B", "#96548C", "#7C7A2E", "#9C3F6B"];
 
 /* De vier van het eerste uur. Gebruikte de planner nog één gedeelde
    PLANNER_KEY, dan verhuist hun planning bij de eerste aanmelding mee. */

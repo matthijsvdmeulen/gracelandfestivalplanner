@@ -362,11 +362,12 @@ dialog#gate .grow{margin-bottom:4px}
 /* Stipjes op een blok: wie gaat hier al heen. */
 .crowd{position:absolute;right:4px;bottom:3px;display:flex;gap:2px;pointer-events:none}
 .crowd i{width:6px;height:6px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 1px rgba(243,242,233,.8)}
+.crowd b{font-family:'Space Mono',monospace;font-size:8.5px;line-height:1;color:var(--soil)}
 .block.on .crowd i{box-shadow:0 0 0 1px rgba(27,33,24,.45)}
 
 /* ---------- samen ---------- */
 .samen{margin-top:26px;display:grid;gap:26px}
-.samen .cols{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.samen .cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
 .samen .col{border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px;background:var(--paper)}
 .samen .col h3{
   font-family:'Archivo',sans-serif;font-size:13px;font-weight:700;margin:0 0 2px;
@@ -415,12 +416,6 @@ dialog#gate .grow{margin-bottom:4px}
   .seg button{padding:8px 11px;font-size:13px;flex:1 1 auto;text-align:center}
   .seg .lang{display:none}
   .seg .kort{display:inline}
-}
-@media (max-width:880px){
-  .samen .cols{grid-template-columns:repeat(2,1fr)}
-}
-@media (max-width:520px){
-  .samen .cols{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{
@@ -521,16 +516,25 @@ const MAX_AGE = 30 * 60 * 1000;   // niet vaker dan eens per half uur proberen
    browser, en dan werkt alles verder gewoon. De workflow vult hier bij het
    publiceren '/api' in, zodat planner en opslag op dezelfde origin staan.  */
 const API_URL = '';
-const POLL = 20 * 1000;           // hoe vaak we kijken of iemand iets wijzigde
+/* Hoe vaak we kijken of iemand iets wijzigde. Elke ronde kost de Worker een
+   leesbewerking per persoon, dus in een grote groep loopt dat kwadratisch op:
+   24 mensen die elk elke 20 seconden pollen zijn ruim 200.000 leesbewerkingen
+   per dag, en de gratis KV-tier stopt bij 100.000. Vandaar dat het interval
+   meegroeit met de groep - vier mensen houden hun snelle 20 seconden.       */
+const POLL = 20 * 1000;
+const POLL_PER_PERSOON = 2 * 1000;
+const pollDelay = () => Math.max(POLL, PEOPLE.length * POLL_PER_PERSOON);
 
 /* Wie meeplannen hangt aan de toegangscode: die code is de groep. De namen
    staan op de server, zodat iedereen dezelfde lijst ziet en je ze kunt
    wijzigen zonder de planner opnieuw uit te rollen. Zonder gedeelde opslag -
    los bestand, of API_URL leeg - plan je in je eentje.                     */
 const COLORS = ['#2F5D8C','#7A4E8C','#A9691A','#B23A48',
-                '#3E6B33','#0F7A6E','#8C5A2F','#5A5A52'];
+                '#3E6B33','#0F7A6E','#8C5A2F','#5A5A52',
+                '#1F6F8B','#96548C','#7C7A2E','#9C3F6B'];
 const SOLO = [{ id:'ik', name:'Ik', color: COLORS[0] }];
-const MAX_PEOPLE = 10;
+const MAX_PEOPLE = 24;
+const MAX_DOTS = 4;   // meer stipjes op één blok worden een streepjescode
 const MIN_CODE = 6;
 
 let PEOPLE = [];          // [{key, name, c}]
@@ -937,6 +941,16 @@ async function savePeople(list){
   render();
 }
 
+/* Zelfplannend, zodat het interval meegroeit zodra de groep verandert. */
+let pollTimer = null;
+function schedulePoll(){
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    if(document.visibilityState === 'visible') await pullPlans();
+    schedulePoll();
+  }, pollDelay());
+}
+
 let pushTimer = null;
 function pushSoon(){
   if(!API_URL || !unlocked || !me) return;
@@ -1340,7 +1354,9 @@ function renderSchema(){
       const cls = ['block', on?'on':'', clash.has(e.id)?'clash':'', dim?'dim':'', w < 82 ? 'narrow':''].filter(Boolean).join(' ');
       const others = PEOPLE.filter(p => p.key !== me && (picks[p.key] || new Set()).has(e.id));
       const crowd = others.length
-        ? `<span class="crowd">${others.map(p => `<i style="--pc:${p.c}"></i>`).join('')}</span>` : '';
+        ? `<span class="crowd">${others.slice(0, MAX_DOTS).map(p =>
+            `<i style="--pc:${p.c}"></i>`).join('')}${
+            others.length > MAX_DOTS ? `<b>+${others.length - MAX_DOTS}</b>` : ''}</span>` : '';
       const wie = others.length ? ' · ook ' + others.map(p => p.name).join(', ') : '';
       return `<button class="${cls}" data-id="${esc(e.id)}"
         style="left:${x}px;width:${w}px;top:${e.lane*46+4}px;height:42px;--ac:${CATS[e.cat].c};--bg:${on?'':CATS[e.cat].c+'1a'};--bd:${on?'':CATS[e.cat].c+'55'}"
@@ -1854,9 +1870,7 @@ document.getElementById('btnSync').onclick = () => loadRemote(true);
   loadRemote(false);
   pullPlans();
 
-  if(API_URL) setInterval(() => {
-    if(document.visibilityState === 'visible') pullPlans();
-  }, POLL);
+  if(API_URL) schedulePoll();
 
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState !== 'visible') return;

@@ -139,12 +139,17 @@ async function call(env, method, path, { code = CODE, body } = {}) {
   const bad = [
     ['lege namenlijst', { people: [] }],
     ['naamloos', { people: [{ name: '   ' }] }],
-    ['te veel namen', { people: Array.from({ length: 11 }, (_, i) => ({ name: 'P' + i })) }],
+    ['te veel namen', { people: Array.from({ length: 25 }, (_, i) => ({ name: 'P' + i })) }],
     ['te lange naam', { people: [{ name: 'x'.repeat(41) }] }],
   ];
   for (const [naam, body] of bad) {
     check('geweigerd: ' + naam, (await call(env, 'PUT', '/api/group', { body })).status, 400);
   }
+  const vierentwintig = { people: Array.from({ length: 24 }, (_, i) => ({ name: 'P' + i })) };
+  const groot = await call(env, 'PUT', '/api/group', { body: vierentwintig });
+  check('vierentwintig namen mag wel', groot.status, 200);
+  check('en die krijgen allemaal een eigen id',
+    new Set(groot.body.people.map(p => p.id)).size, 24);
   const pid = (await call(env, 'GET', '/api/plan')).body.people[0].id;
   check('geweigerd: ids die geen tekst zijn',
     (await call(env, 'PUT', '/api/plan/' + pid, { body: { ids: [1, 2] } })).status, 400);

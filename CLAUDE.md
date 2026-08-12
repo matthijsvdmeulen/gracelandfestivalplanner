@@ -82,6 +82,13 @@ Worker eruit, dan blijft alles werken met de opslag in de browser; wat je
 wijzigt gaat bij de volgende geslaagde ronde alsnog mee. Bouw geen scherm dat
 op een geslaagde serveraanroep wacht.
 
+**De polling groeit mee met de groep.** Elke ronde kost een leesbewerking per
+persoon, dus in een groep van N kost het N x (N+1) leesbewerkingen per ronde
+als iedereen kijkt. Bij 24 mensen op 20 seconden is dat ruim 200.000 per dag,
+en de gratis KV-tier stopt bij 100.000. `pollDelay()` schaalt daarom mee
+(2 seconden per persoon, minimaal 20). Zet dat niet terug op een vast interval
+zonder de rekensom opnieuw te maken; `MAX_PEOPLE` staat op 24.
+
 **Iedereen schrijft alleen zijn eigen lijstje.** `PUT /api/plan/<id>` raakt
 alleen die persoon, dus twee mensen die tegelijk plannen kunnen elkaar niet
 overschrijven. Ga niet over op één document met iedereen erin zonder een

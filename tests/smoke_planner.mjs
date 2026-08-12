@@ -243,6 +243,30 @@ await settle(500);
 check('andere code toont een andere groep',
   qa('#who .who').map(e => e.textContent.replace(/\d+$/, '').trim()), ['Zed']);
 
+/* --- een grote groep ----------------------------------------------------- */
+const groot = Array.from({ length: 24 }, (_, i) => ({ id: 'g' + i, name: 'Naam' + i, color: '#2F5D8C' }));
+server.groups['grote-groep-24'] = {
+  people: groot,
+  // iedereen op hetzelfde blok, om de stipjes te testen
+  plans: Object.fromEntries(groot.map(p => [p.id, ['vr|Grasland|Lucky Fonz III|19:00']])),
+  revs: Object.fromEntries(groot.map(p => [p.id, 1])),
+};
+q('#sync').click();
+await settle();
+q('#gCode').value = 'grote-groep-24';
+q('#gGo').click();
+await settle(600);
+check('vierentwintig mensen in de balk', qa('#who .who').length, 24);
+q('#vAll').click();
+check('vierentwintig kolommen in Samen', qa('.samen .col').length, 24);
+q('#vSchema').click();
+q('#tabs [data-day="vr"]').click();
+const blok = qa('.block').find(b => /Lucky Fonz/.test(b.textContent));
+check('stipjes blijven beperkt', blok.querySelectorAll('.crowd i').length, 4);
+check('en de rest wordt geteld', blok.querySelector('.crowd b').textContent, '+19');
+check('de namen staan wel in de tooltip', /ook Naam/.test(blok.getAttribute('title')), true);
+check('polling vertraagt mee met de groep', await w.eval('pollDelay()'), 48000);
+
 console.log(`${pass} geslaagd, ${fail.length} gefaald`);
 fail.forEach(f => console.log('\nGEFAALD: ' + f));
 process.exit(fail.length ? 1 : 0);
