@@ -93,7 +93,23 @@ planning. Namen beheer je in de planner zelf, achter **Namen…**.
 
 Iedereen schrijft alleen zijn eigen lijstje weg (`PUT /api/plan/<id>`), dus twee
 mensen die tegelijk plannen kunnen elkaar niet overschrijven. De planner kijkt
-elke twintig seconden of er iets gewijzigd is.
+elke twintig seconden of er iets gewijzigd is, en wat langzamer naarmate de
+groep groter is.
+
+Een groep telt hoogstens 24 mensen. Die grens zit niet in de opmaak maar in de
+gratis KV-tier van Cloudflare: elke controleronde kost een leesbewerking per
+persoon, dus het loopt kwadratisch op met de groepsgrootte.
+
+| Groep | Uren open | Interval | Leesbewerkingen/dag | Binnen 100.000 |
+| --- | --- | --- | --- | --- |
+| 4 | 3 | 20 s | 10.800 | ja |
+| 12 | 3 | 20 s | 84.240 | ja |
+| 24 | 2 | 20 s | 216.000 | nee |
+| 24 | 2 | 48 s | 90.000 | ja |
+
+Daarom schaalt het interval mee: twee seconden per persoon, minimaal twintig.
+Word je met veel grote groepen structureel groter, dan is het Workers Paid-plan
+(vanaf $5 per maand, met 10 miljoen leesbewerkingen) de rustigste oplossing.
 
 ## Testen
 
