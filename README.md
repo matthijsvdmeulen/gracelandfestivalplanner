@@ -13,8 +13,10 @@ Geen officiële uitgave van Graceland Festival. Het
 - Blokkenschema per dag, met filters op soort en drie zoomniveaus
 - Programmaoverzicht met beschrijvingen, foto's en zoeken
 - Eigen selectie met overlapwaarschuwing, export naar tekst en `.ics`
-- Gedeeld met z'n vieren: kies bovenin wie je bent, zie op elk blok wie er nog
-  meer heen gaat, en in **Samen** de vier planningen naast elkaar
+- Gedeeld met je vrienden: kies bovenin wie je bent, zie op elk blok wie er nog
+  meer heen gaat, en in **Samen** alle planningen naast elkaar
+- Eén groep per toegangscode, dus andere vriendengroepen kunnen hem ook
+  gebruiken zonder elkaars planning te zien. Namen stel je zelf in.
 - Doorlopende onderdelen (het veldprogramma) zelf inplannen per half uur
 - Kinderdorp en The Lounge blijven buiten beeld
 - Wijzigt het schema, dan verhuist je keuze mee en krijg je te zien wat er
@@ -62,9 +64,10 @@ zonder wrangler op je eigen machine. Eenmalig:
 2. **Cloudflare → My Profile → API Tokens**, een token met het sjabloon
    *Edit Cloudflare Workers*. Het account-id staat rechts op de
    Workers-overzichtspagina.
-3. **GitHub → Settings → Secrets and variables → Actions**, drie secrets:
-   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` en `PLANNER_KEY` (de
-   gedeelde toegangscode die jullie vier invullen).
+3. **GitHub → Settings → Secrets and variables → Actions**:
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `GROUP_SALT` (een lange
+   willekeurige tekst) en eventueel `PLANNER_KEY` (de code van de eerste opzet,
+   alleen nodig om die planning over te nemen).
 4. **Actions → Worker uitrollen → Run workflow**.
 
 Daarna rolt elke wijziging in `worker/` zichzelf uit. Liever lokaal:
@@ -82,17 +85,21 @@ Cloudflare **geproxyd** staat (oranje wolk). Bij het allereerste opzetten moet
 hij juist op DNS-only (grijs) staan tot GitHub het certificaat heeft
 uitgegeven; daarna omzetten naar geproxyd.
 
-Iedereen schrijft alleen zijn eigen lijstje weg (`PUT /api/plan/<naam>`), dus
-twee mensen die tegelijk plannen kunnen elkaar niet overschrijven. De planner
-kijkt elke twintig seconden of er iets gewijzigd is.
+De toegangscode ís de groep: uit de code leidt de Worker met HMAC-SHA256 en
+`GROUP_SALT` een groeps-id af, en de code zelf komt nooit in de opslag terecht.
+Een onbekende code maakt niet stilzwijgend een lege groep aan maar vraagt eerst
+om bevestiging — anders is een typefout niet te onderscheiden van verdwenen
+planning. Namen beheer je in de planner zelf, achter **Namen…**.
 
-Namen toevoegen of wijzigen: `PEOPLE` in `planner.html` én in
-`worker/index.js`.
+Iedereen schrijft alleen zijn eigen lijstje weg (`PUT /api/plan/<id>`), dus twee
+mensen die tegelijk plannen kunnen elkaar niet overschrijven. De planner kijkt
+elke twintig seconden of er iets gewijzigd is.
 
 ## Testen
 
 ```bash
 python tests/test_scraper.py     # offline, op fixtures
+node tests/test_worker.mjs       # Worker met KV in het geheugen
 npm install jsdom
 node tests/smoke_planner.mjs     # offline, echte DOM
 ```

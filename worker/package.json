@@ -1,0 +1,5 @@
+{
+  "name": "gracelandplanner-api",
+  "private": true,
+  "type": "module"
+}

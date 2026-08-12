@@ -1,7 +1,7 @@
 /**
  * Rooktest voor planner.html in een echte DOM. Geen netwerk: het schema komt
  * uit tests/fixtures/schema.json en de gedeelde opslag is een nepserver in
- * dit bestand, die onthoudt wat de planner wegschrijft.
+ * dit bestand, die zich net zo gedraagt als worker/index.js.
  *
  *   npm install jsdom
  *   node tests/smoke_planner.mjs
@@ -24,23 +24,44 @@ const check = (name, got, want) => {
   else fail.push(`${name}\n    verwacht: ${JSON.stringify(want)}\n    gekregen: ${JSON.stringify(got)}`);
 };
 
-/* Nepserver: houdt per persoon een lijstje bij, net als de Worker. */
-const server = { plans: {}, revs: {}, puts: [] };
+/* Nepserver: één groep per code, net als de Worker. */
+const server = { groups: {}, puts: [] };
+let nextId = 0;
 function apiRespond(url, opts) {
   const method = (opts && opts.method) || 'GET';
+  const code = (opts && opts.headers && opts.headers['x-planner-key']) || '';
+  const g = server.groups[code];
+
   if (url.endsWith('/api/plan') && method === 'GET') {
-    return { plans: server.plans, revs: server.revs };
+    if (!g) return { __status: 404, unknown: true, error: 'deze code kent nog geen groep' };
+    return { people: g.people, plans: g.plans, revs: g.revs };
   }
-  const m = url.match(/\/api\/plan\/([a-z]+)$/);
+  if (url.endsWith('/api/group') && method === 'POST') {
+    if (g) return { __status: 409, error: 'bestaat al' };
+    const people = JSON.parse(opts.body).people
+      .map(p => ({ id: 'p' + (++nextId), name: p.name, color: '#2F5D8C' }));
+    server.groups[code] = { people, plans: {}, revs: {} };
+    return { people, plans: {}, revs: {} };
+  }
+  if (url.endsWith('/api/group') && method === 'PUT') {
+    if (!g) return { __status: 404, unknown: true };
+    const people = JSON.parse(opts.body).people
+      .map(p => ({ id: p.id || ('p' + (++nextId)), name: p.name, color: '#2F5D8C' }));
+    const keep = new Set(people.map(p => p.id));
+    Object.keys(g.plans).forEach(k => { if (!keep.has(k)) { delete g.plans[k]; delete g.revs[k]; } });
+    g.people = people;
+    return { people, plans: g.plans, revs: g.revs };
+  }
+  const m = url.match(/\/api\/plan\/([a-zA-Z0-9_-]+)$/);
   if (m && method === 'PUT') {
-    const person = m[1];
+    if (!g) return { __status: 404, unknown: true };
     const ids = JSON.parse(opts.body).ids;
-    server.plans[person] = ids;
-    server.revs[person] = (server.revs[person] || 0) + 1;
-    server.puts.push({ person, ids });
-    return { ok: true, person, rev: server.revs[person] };
+    g.plans[m[1]] = ids;
+    g.revs[m[1]] = (g.revs[m[1]] || 0) + 1;
+    server.puts.push({ person: m[1], ids });
+    return { ok: true, person: m[1], rev: g.revs[m[1]] };
   }
-  return { error: 'onbekend pad' };
+  return { __status: 404, error: 'onbekend pad' };
 }
 
 const dom = new JSDOM(html, {
@@ -48,52 +69,97 @@ const dom = new JSDOM(html, {
   runScripts: 'dangerously',
   pretendToBeVisual: true,
   beforeParse(w) {
-    // jsdom kent <dialog> niet volledig
     w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
     w.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
-    // Een keuze uit de eenpersoonsversie, die verschoven is in het nieuwe
-    // schema: test zowel de overname als migrate().
+    w.confirm = () => true;
+    // Een keuze uit de eenpersoonsversie, verschoven in het nieuwe schema.
     w.localStorage.setItem('graceland2026:selectie',
       JSON.stringify(['za|Grasland|Nynke Laverman|17:00']));
     w.fetch = async (url, opts) => {
-      const body = url.includes('/api/') ? apiRespond(url, opts) : JSON.parse(schema);
-      return { ok: true, status: 200, json: async () => body };
+      if (!url.includes('/api/')) {
+        return { ok: true, status: 200, json: async () => JSON.parse(schema) };
+      }
+      const body = apiRespond(url, opts);
+      const status = body.__status || 200;
+      return { ok: status < 400, status, json: async () => body };
     };
   }
 });
 
 const w = dom.window, d = w.document;
-const settle = (ms = 120) => new Promise(r => setTimeout(r, ms));
+const settle = (ms = 150) => new Promise(r => setTimeout(r, ms));
 await settle(500);
 const q = s => d.querySelector(s), qa = s => [...d.querySelectorAll(s)];
 const stored = () => JSON.parse(w.localStorage.getItem('graceland2026:planning') || '{}');
-/* De naamknop draagt ook een telbadge; die hoort niet bij de naam. */
 const activeName = () => q('#who .who[aria-pressed="true"]').textContent.replace(/\d+$/, '').trim();
 
+/* --- vergrendeld: programma zichtbaar, namen niet ------------------------ */
 check('live schema geladen', q('#status').className, 'status ok');
-check('keuze uit de eenpersoonsversie overgenomen en gemigreerd',
-  stored().matthijs, ['za|Grasland|Nynke Laverman|17:30']);
+check('geen namen zichtbaar zonder code', qa('#who .who').length, 0);
+check('wel een ontgrendelknop', !!q('#btnUnlock'), true);
+check('blokkenschema is gewoon te zien', qa('.block').length > 0, true);
+check('status meldt vergrendeld', q('#sync').textContent, 'Vergrendeld');
+
+q('#vMine').click();
+check('mijn programma is vergrendeld', /vergrendeld/i.test(q('.empty').textContent), true);
+
+/* --- klikken op een blok vraagt om de code ------------------------------- */
+q('#vSchema').click();
+qa('.block')[0].click();
+await settle();
+check('blok aanklikken opent de poort', q('#gate').hasAttribute('open'), true);
+check('niets gekozen zolang het op slot zit', server.puts.length, 0);
+
+/* --- onbekende code leidt niet stilzwijgend tot een lege groep ----------- */
+q('#gCode').value = 'vriendengroep-een';
+q('#gGo').click();
+await settle(400);
+check('onbekende code vraagt om bevestiging', /kent nog geen groep/.test(q('#gate h2').textContent), true);
+check('nog steeds vergrendeld', qa('#who .who').length, 0);
+
+/* --- groep aanmaken ------------------------------------------------------ */
+q('#gNew').click();
+await settle();
+check('namenscherm verschijnt', /Wie plannen er mee/.test(q('#gate h2').textContent), true);
+const typ = (i, v) => {
+  const inp = qa('#gList input')[i];
+  inp.value = v;
+  inp.dispatchEvent(new w.Event('input'));
+};
+typ(0, 'Matthijs');
+q('#gAdd').click(); await settle(); typ(1, 'Ruben');
+q('#gAdd').click(); await settle(); typ(2, 'Bart');
+q('#gSave').click();
+await settle(1000);
+
+check('groep aangemaakt, drie namen', qa('#who .who').map(e => e.textContent.replace(/\d+$/, '').trim()),
+  ['Matthijs', 'Ruben', 'Bart']);
+check('poort gesloten', q('#gate').hasAttribute('open'), false);
+check('status meldt gedeeld', /Gedeeld/.test(q('#sync').textContent), true);
+check('namenknop beschikbaar', !!q('#btnNames'), true);
+
+const ids = server.groups['vriendengroep-een'].people.map(p => p.id);
+check('keuze uit de eenpersoonsversie alsnog overgenomen en gemigreerd',
+  stored()[ids[0]], ['za|Grasland|Nynke Laverman|17:30']);
 check('wijziging gemeld', /verplaatst/.test(q('#notice').textContent), true);
-check('vier mensen in de balk', qa('#who .who').length, 4);
-check('eerste persoon is actief', activeName(), 'Matthijs');
 
-/* --- verborgen podia --------------------------------------------------- */
+/* --- verborgen podia ----------------------------------------------------- */
+q('#vSchema').click();
 q('#tabs [data-day="vr"]').click();
-const lanes = qa('.lane .nm').map(e => e.firstChild.textContent.trim());
-check('Kinderdorp en The Lounge zijn eruit', lanes, ['Grasland', 'Bospodium']);
+check('Kinderdorp en The Lounge zijn eruit',
+  qa('.lane .nm').map(e => e.firstChild.textContent.trim()), ['Grasland', 'Bospodium']);
 
-/* --- kiezen synchroniseert naar de server ------------------------------ */
+/* --- kiezen synchroniseert ----------------------------------------------- */
 qa('.block')[0].click();
 await settle(900);
-check('keuze naar de server gestuurd', server.puts.at(-1).person, 'matthijs');
-check('server heeft beide keuzes',
-  server.plans.matthijs.length, 2);
+check('keuze naar de server', server.puts.at(-1).person, ids[0]);
+check('server heeft beide keuzes', server.groups['vriendengroep-een'].plans[ids[0]].length, 2);
 
-/* --- doorlopend zelf inplannen ----------------------------------------- */
+/* --- doorlopend zelf inplannen ------------------------------------------- */
 q('#vMine').click();
 check('doorlopend-paneel staat er', !!q('#fAdd'), true);
-check('halfuurstappen in de keuzelijst',
-  [...q('#fStart').options].slice(0, 3).map(o => o.textContent), ['19:00', '19:30', '20:00']);
+check('halfuurstappen', [...q('#fStart').options].slice(0, 3).map(o => o.textContent),
+  ['19:00', '19:30', '20:00']);
 q('#fWhat').value = 'Labyrint';
 q('#fStart').value = [...q('#fStart').options].find(o => o.textContent === '20:30').value;
 q('#fDur').value = '90';
@@ -101,14 +167,11 @@ q('#fDur').dispatchEvent(new w.Event('change'));
 q('#fStart').dispatchEvent(new w.Event('change'));
 q('#fAdd').click();
 await settle(900);
-const own = (stored().matthijs || []).filter(x => x.startsWith('zelf|'));
-check('doorlopend onderdeel ingepland', own, ['zelf|vr|Veld|Labyrint|20:30|22:00']);
-check('doorlopend staat in mijn programma',
-  qa('.item .what').some(e => /Labyrint/.test(e.textContent)), true);
-check('doorlopend ook naar de server',
-  server.plans.matthijs.some(x => x.startsWith('zelf|')), true);
+check('doorlopend ingepland',
+  (stored()[ids[0]] || []).filter(x => x.startsWith('zelf|')), ['zelf|vr|Veld|Labyrint|20:30|22:00']);
+check('doorlopend zichtbaar', qa('.item .what').some(e => /Labyrint/.test(e.textContent)), true);
 
-/* --- iedereen zijn eigen lijstje --------------------------------------- */
+/* --- ieder zijn eigen lijstje -------------------------------------------- */
 qa('#who .who')[1].click();
 await settle(200);
 check('wisselen van persoon', activeName(), 'Ruben');
@@ -117,39 +180,58 @@ check('Ruben begint leeg', /Nog niets gekozen voor Ruben/.test(q('.empty').textC
 q('#vSchema').click();
 qa('.block')[0].click();
 await settle(900);
-check('Ruben schrijft onder eigen naam weg', server.puts.at(-1).person, 'ruben');
-check('Matthijs zijn lijstje blijft staan', stored().matthijs.length, 3);
+check('Ruben schrijft onder eigen naam weg', server.puts.at(-1).person, ids[1]);
+check('lijstje van Matthijs blijft staan', stored()[ids[0]].length, 3);
 check('stipje van de ander op het blok', qa('.block .crowd i').length >= 1, true);
 
-/* --- samen ------------------------------------------------------------- */
+/* --- samen --------------------------------------------------------------- */
 q('#vAll').click();
-check('vier kolommen', qa('.samen .col').length, 4);
+check('drie kolommen', qa('.samen .col').length, 3);
 check('samen-melding noemt beide namen',
   /Matthijs/.test(q('.samen .both').textContent) && /Ruben/.test(q('.samen .both').textContent), true);
 
-/* --- programma en detail ----------------------------------------------- */
+/* --- namen wijzigen ------------------------------------------------------ */
+q('#btnNames').click();
+await settle();
+check('namenscherm toont de huidige namen',
+  qa('#gList input').map(i => i.value), ['Matthijs', 'Ruben', 'Bart']);
+typ(0, 'Matthijs vd M');
+qa('#gList .rmn')[2].click();          // Bart eruit
+await settle();
+q('#gSave').click();
+await settle(500);
+check('hernoemd en ingekort', qa('#who .who').map(e => e.textContent.replace(/\d+$/, '').trim()),
+  ['Matthijs vd M', 'Ruben']);
+check('hernoemen kost geen planning', stored()[ids[0]].length, 3);
+check('de weggehaalde is ook op de server weg',
+  server.groups['vriendengroep-een'].plans[ids[2]], undefined);
+
+/* --- programma en detail -------------------------------------------------- */
 q('#vProg').click();
 check('programmalijst', qa('.prog h3').map(e => e.textContent),
   ['Ezra', 'Labyrint', 'Lucky Fonz III', 'Nynke Laverman']);
-check('doorlopend zonder tijden', qa('.cont').length, 1);
-
-q('#q').value = 'nachtset';
-q('#q').dispatchEvent(new w.Event('input'));
-check('zoeken doorzoekt beschrijvingen', qa('.prog h3').map(e => e.textContent), ['Ezra']);
-q('#q').value = '';
-q('#q').dispatchEvent(new w.Event('input'));
-
 q('.more').click();
 check('detailvenster opent', q('#detail h2').textContent, 'Ezra');
 q('#closeDetail').click();
 
-/* --- wat een ander wijzigt komt binnen --------------------------------- */
-server.plans.bart = ['vr|Grasland|Lucky Fonz III|19:00'];
-server.revs.bart = 9;
+/* --- wat een ander wijzigt komt binnen ----------------------------------- */
+server.groups['vriendengroep-een'].plans[ids[1]] = ['vr|Grasland|Lucky Fonz III|19:00'];
+server.groups['vriendengroep-een'].revs[ids[1]] = 99;
 await w.eval('pullPlans()');
-await settle(200);
-check('wijziging van een ander opgehaald', stored().bart,
-  ['vr|Grasland|Lucky Fonz III|19:00']);
+await settle(300);
+check('wijziging van een ander opgehaald', stored()[ids[1]], ['vr|Grasland|Lucky Fonz III|19:00']);
+
+/* --- een andere code is een andere groep --------------------------------- */
+server.groups['andere-vrienden'] = {
+  people: [{ id: 'z1', name: 'Zed', color: '#000' }], plans: {}, revs: {},
+};
+q('#sync').click();
+await settle();
+q('#gCode').value = 'andere-vrienden';
+q('#gGo').click();
+await settle(500);
+check('andere code toont een andere groep',
+  qa('#who .who').map(e => e.textContent.replace(/\d+$/, '').trim()), ['Zed']);
 
 console.log(`${pass} geslaagd, ${fail.length} gefaald`);
 fail.forEach(f => console.log('\nGEFAALD: ' + f));

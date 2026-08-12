@@ -306,6 +306,31 @@ dialog#detail .dlinks a{color:var(--moss-deep);font-size:13px}
   dialog#detail .hero{height:150px}
   dialog#detail .dbody{padding:18px 18px 24px}
 }
+/* ---------- toegang en namen ---------- */
+dialog#gate{
+  border:1px solid var(--peat);border-radius:var(--radius);padding:0;
+  max-width:440px;width:calc(100% - 32px);background:var(--paper);color:var(--peat);
+}
+dialog#gate::backdrop{background:rgba(27,33,24,.45)}
+dialog#gate .gbody{padding:22px 22px 20px}
+dialog#gate h2{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;margin:0 0 8px}
+dialog#gate p{margin:0 0 12px;font-size:13.5px;color:var(--soil);line-height:1.55}
+dialog#gate .x{
+  position:absolute;top:8px;right:10px;border:0;background:transparent;
+  font-size:21px;line-height:1;color:var(--soil);padding:4px 7px;border-radius:4px;
+}
+dialog#gate .x:hover{background:rgba(27,33,24,.08);color:var(--peat)}
+dialog#gate input[type="text"],dialog#gate input[type="password"]{
+  font-family:'Archivo',sans-serif;font-size:14.5px;padding:9px 12px;width:100%;
+  border:1px solid var(--line);border-radius:var(--radius);background:#fff;color:var(--peat);
+}
+dialog#gate input:focus{outline:2px solid var(--moss);outline-offset:-1px}
+dialog#gate .nrow{display:flex;gap:7px;align-items:center;margin-bottom:7px}
+dialog#gate .nrow .btn{flex:0 0 auto;padding:7px 11px}
+dialog#gate .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+dialog#gate .err{color:var(--ochre);font-weight:600;margin:10px 0 0}
+dialog#gate .grow{margin-bottom:4px}
+
 /* ---------- wie ben jij ---------- */
 .who{display:inline-flex;align-items:center;gap:7px;padding:8px 15px}
 .who .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pc)}
@@ -439,6 +464,7 @@ dialog#detail .dlinks a{color:var(--moss-deep);font-size:13px}
 </div>
 
 <dialog id="detail"></dialog>
+<dialog id="gate"></dialog>
 
 <script>
 /* ============================================================
@@ -468,16 +494,32 @@ const MAX_AGE = 30 * 60 * 1000;   // niet vaker dan eens per half uur proberen
 const API_URL = '';
 const POLL = 20 * 1000;           // hoe vaak we kijken of iemand iets wijzigde
 
-/* Wie meeplannen. Iemand toevoegen: hier een regel erbij, en dezelfde naam
-   in PEOPLE in worker/index.js. De sleutel komt in de opslag terecht, dus
-   die verander je niet meer zonder de bestaande planning mee te verhuizen. */
-const PEOPLE = [
-  { key:'matthijs', name:'Matthijs', c:'#2F5D8C' },
-  { key:'ruben',    name:'Ruben',    c:'#7A4E8C' },
-  { key:'bart',     name:'Bart',     c:'#A9691A' },
-  { key:'lisanne',  name:'Lisanne',  c:'#B23A48' }
-];
-const personOf = k => PEOPLE.find(p => p.key === k) || PEOPLE[0];
+/* Wie meeplannen hangt aan de toegangscode: die code is de groep. De namen
+   staan op de server, zodat iedereen dezelfde lijst ziet en je ze kunt
+   wijzigen zonder de planner opnieuw uit te rollen. Zonder gedeelde opslag -
+   los bestand, of API_URL leeg - plan je in je eentje.                     */
+const COLORS = ['#2F5D8C','#7A4E8C','#A9691A','#B23A48',
+                '#3E6B33','#0F7A6E','#8C5A2F','#5A5A52'];
+const SOLO = [{ id:'ik', name:'Ik', color: COLORS[0] }];
+const MAX_PEOPLE = 10;
+const MIN_CODE = 6;
+
+let PEOPLE = [];          // [{key, name, c}]
+let unlocked = false;     // is de groep bekend?
+let me = null;            // wie er nu plant
+
+const personOf = k => PEOPLE.find(p => p.key === k) || PEOPLE[0]
+                      || { key:'', name:'', c: COLORS[0] };
+
+/* Namen van de server overnemen. Persoons-id's blijven leidend, zodat een
+   hernoeming niemand zijn planning kost. */
+function setPeople(list){
+  PEOPLE = (list || []).map((p, i) => ({
+    key: p.id || p.key, name: p.name, c: p.color || COLORS[i % COLORS.length]
+  }));
+  PEOPLE.forEach(p => { if(!picks[p.key]) picks[p.key] = new Set(); });
+  if(!PEOPLE.some(p => p.key === me)) me = PEOPLE.length ? PEOPLE[0].key : null;
+}
 
 /* Podia die we niet in ons overzicht willen. Ze verdwijnen uit het
    blokkenschema, uit de programmalijst en uit de tellingen; het schema zelf
@@ -711,6 +753,7 @@ const KEY  = 'graceland2026:planning';   // {persoon: [id, ...]}
 const OLDKEY = 'graceland2026:selectie'; // eenpersoonsversie van hiervoor
 const MEKEY = 'graceland2026:wie';
 const AKEY = 'graceland2026:code';
+const GKEY = 'graceland2026:groep';   // namen, zodat een hapering niets leegmaakt
 const CKEY = 'graceland2026:schema';
 const mem = {};
 const store = {
@@ -726,10 +769,7 @@ const store = {
   }
 };
 
-const emptyPicks = () => Object.fromEntries(PEOPLE.map(p => [p.key, new Set()]));
-
-let picks = emptyPicks();
-let me = PEOPLE[0].key;
+let picks = {};           // persoons-id -> Set(blok-id)
 let activeDay = 'do';
 let view = 'schema';
 let ppm = 2.2;
@@ -743,10 +783,15 @@ let changes = [];
 /* De set van de persoon die nu aan het plannen is. */
 const mine = () => picks[me] || (picks[me] = new Set());
 
+function saveLocal(){
+  const flat = {};
+  PEOPLE.forEach(p => { flat[p.key] = [...(picks[p.key] || [])]; });
+  return store.set(KEY, JSON.stringify(flat));
+}
+
 let saveTimer = null;
 function save(){
-  const flat = Object.fromEntries(PEOPLE.map(p => [p.key, [...(picks[p.key] || [])]]));
-  store.set(KEY, JSON.stringify(flat));
+  saveLocal();
   const el = document.getElementById('saved');
   el.classList.add('show');
   clearTimeout(saveTimer);
@@ -762,9 +807,11 @@ function save(){
    niet, dan blijft de keuze lokaal staan en gaat hij bij de volgende ronde
    alsnog mee.
    ============================================================ */
-let syncState = { on:false, at:null, err:null, busy:false, dirty:false, need:false };
+let syncState = { on:false, at:null, err:null, busy:false,
+                  dirty:false, need:false, unknown:false };
 let revs = {};              // persoon -> laatst geziene revisie op de server
 let accessCode = '';
+let legacyPicks = null;     // keuze uit de eenpersoonsversie, nog te plaatsen
 
 async function api(path, opts){
   const res = await fetch(API_URL + path, Object.assign({
@@ -772,53 +819,105 @@ async function api(path, opts){
     headers: Object.assign({ 'content-type':'application/json' },
                            accessCode ? { 'x-planner-key': accessCode } : {})
   }, opts || {}));
-  if(res.status === 401){ syncState.need = true; throw new Error('toegangscode nodig'); }
-  if(!res.ok) throw new Error('HTTP ' + res.status);
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(res.status === 401){
+    syncState.need = true;
+    throw new Error((data && data.error) || 'toegangscode nodig');
+  }
+  if(res.status === 404 && data && data.unknown){
+    const err = new Error('deze code kent nog geen groep');
+    err.unknown = true;
+    throw err;
+  }
+  if(!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
   syncState.need = false;
-  return res.json();
+  return data;
 }
 
-/* Haal op wat er op de server staat. De eigen lijst laten we met rust zolang
-   we zelf nog iets hebben klaarstaan om te versturen. */
-async function pullPlans(){
-  if(!API_URL) return;
-  try{
-    const data = await api('/plan');
-    let touched = false;
-    PEOPLE.forEach(p => {
-      const list = (data.plans || {})[p.key];
-      if(!Array.isArray(list)) return;
-      const rev = (data.revs || {})[p.key] || 0;
-      if(rev === revs[p.key]) return;
-      if(p.key === me && (syncState.dirty || pushTimer)) return;
-      revs[p.key] = rev;
-      picks[p.key] = new Set(list);
+/* Overnemen wat de server teruggeeft: eerst de namen, dan de lijstjes. De
+   eigen lijst laten we met rust zolang we zelf nog iets klaar hebben staan om
+   te versturen - anders overschrijft een ronde je laatste klik. */
+function adopt(data){
+  syncState.unknown = false;
+  if(Array.isArray(data.people)){
+    setPeople(data.people);
+    store.set(GKEY, JSON.stringify(data.people));
+    unlocked = true;
+  }
+  let touched = false;
+  PEOPLE.forEach(p => {
+    const list = (data.plans || {})[p.key];
+    if(!Array.isArray(list)) return;
+    const rev = (data.revs || {})[p.key] || 0;
+    if(rev === revs[p.key]) return;
+    if(p.key === me && (syncState.dirty || pushTimer)) return;
+    revs[p.key] = rev;
+    picks[p.key] = new Set(list);
+    touched = true;
+  });
+  // De keuze uit de eenpersoonsversie kan pas mee zodra we weten wie je bent.
+  // Het schema is dan al geladen, dus hij moet nog wel langs relink().
+  if(legacyPicks && me && !mine().size){
+    const r = relink(legacyPicks);
+    legacyPicks = null;
+    if(r.ids.length){
+      picks[me] = new Set(r.ids);
+      noteChanges(r.notes);
       touched = true;
-    });
-    syncState.on = true; syncState.err = null; syncState.at = Date.now();
-    if(touched){
-      const flat = Object.fromEntries(PEOPLE.map(p => [p.key, [...(picks[p.key] || [])]]));
-      await store.set(KEY, JSON.stringify(flat));
-      render(true);
-    } else {
-      renderSync();
+      pushSoon();
     }
+  }
+  syncState.on = true; syncState.err = null; syncState.at = Date.now();
+  return touched;
+}
+
+async function pullPlans(){
+  if(!API_URL || !accessCode) return;
+  const before = JSON.stringify(PEOPLE);
+  try{
+    const touched = adopt(await api('/plan'));
+    if(touched || JSON.stringify(PEOPLE) !== before){ await saveLocal(); render(true); }
+    else renderSync();
   }catch(err){
+    if(err.unknown){
+      // Een code die nog geen groep kent. Niet stilzwijgend een lege groep
+      // tonen: dat is niet van "al mijn planning is weg" te onderscheiden.
+      syncState.unknown = true; syncState.err = null; unlocked = false; render();
+      return;
+    }
     syncState.err = err.message || 'netwerkfout';
     renderSync();
   }
 }
 
+async function createGroup(names){
+  adopt(await api('/group', { method:'POST',
+    body: JSON.stringify({ people: names.map(n => ({ name:n })) }) }));
+  await saveLocal();
+  render();
+}
+
+async function savePeople(list){
+  const out = await api('/group', { method:'PUT',
+    body: JSON.stringify({ people: list.map(p => ({ id:p.key, name:p.name })) }) });
+  const keep = new Set((out.people || []).map(p => p.id));
+  Object.keys(picks).forEach(k => { if(!keep.has(k)) delete picks[k]; });
+  adopt(out);
+  await saveLocal();
+  render();
+}
+
 let pushTimer = null;
 function pushSoon(){
-  if(!API_URL) return;
+  if(!API_URL || !unlocked || !me) return;
   syncState.dirty = true;
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => { pushTimer = null; pushPlan(); }, 600);
 }
 
 async function pushPlan(){
-  if(!API_URL || syncState.busy) return;
+  if(!API_URL || !unlocked || !me || syncState.busy) return;
   syncState.busy = true;
   const sending = [...mine()];
   try{
@@ -840,30 +939,24 @@ async function pushPlan(){
 function renderSync(){
   const el = document.getElementById('sync');
   if(!el) return;
+  el.title = '';
   if(!API_URL){ el.textContent = 'Alleen deze browser'; el.className = 'sync'; return; }
-  if(syncState.need){
-    el.textContent = 'Toegangscode nodig'; el.className = 'sync warn';
-    el.title = 'Klik om de gedeelde code in te vullen'; return;
+  if(syncState.unknown){
+    el.textContent = 'Nieuwe code'; el.className = 'sync warn'; return;
+  }
+  if(syncState.need || !accessCode){
+    el.textContent = 'Vergrendeld'; el.className = 'sync warn';
+    el.title = 'Vul de toegangscode in om de planning te zien'; return;
   }
   if(syncState.err){
     el.textContent = syncState.dirty ? 'Niet gedeeld — staat lokaal klaar' : 'Even geen verbinding';
     el.className = 'sync warn'; el.title = syncState.err; return;
   }
-  if(syncState.dirty){ el.textContent = 'Delen…'; el.className = 'sync'; el.title = ''; return; }
+  if(syncState.dirty){ el.textContent = 'Delen…'; el.className = 'sync'; return; }
   el.textContent = syncState.on ? 'Gedeeld · ' + when(syncState.at) : 'Verbinden…';
   el.className = syncState.on ? 'sync ok' : 'sync';
-  el.title = '';
 }
 
-async function askCode(){
-  const code = prompt('Gedeelde toegangscode voor de planning:', accessCode || '');
-  if(code === null) return;
-  accessCode = code.trim();
-  await store.set(AKEY, accessCode);
-  syncState.need = false;
-  await pullPlans();
-  if(syncState.dirty) pushPlan();
-}
 
 /* ============================================================
    CONFLICTEN
@@ -928,33 +1021,45 @@ function applyData(json, at, stale){
    hun nieuwe tijd, geschrapte onderdelen worden gemeld en verwijderd. Dat
    geldt voor alle vier de planningen; dezelfde wijziging wordt één keer
    gemeld, ook als meerdere mensen hetzelfde blok gekozen hadden. */
-function migrate(before){
+/* Eén lijst keuzes opnieuw aan het schema koppelen. Geeft de bijgewerkte ids
+   terug plus wat erover te melden valt. */
+function relink(list){
   const all = new Map();
   DAYS.forEach(d => d.events.forEach(e => all.set(e.id, e)));
+  const out = [], notes = [];
+  (list || []).forEach(id => {
+    if(isOwn(id) || all.has(id)){ out.push(id); return; }
+    const old = id.split('|');
+    // Een podium dat we bewust verbergen is niet "vervallen"; stil weglaten.
+    if(HIDDEN_STAGES.includes(old[1])) return;
+    const [day, , title] = old;
+    const hits = [...all.values()].filter(e => e.day === day && e.title === title);
+    if(hits.length === 1){
+      out.push(hits[0].id);
+      notes.push({ key:'v' + id, kind:'moved', title,
+        from: `${old[3]} · ${old[1]}`, to: `${hits[0].st} · ${hits[0].stage}` });
+    } else {
+      notes.push({ key:'g' + id, kind:'gone', title, from: old[3] });
+    }
+  });
+  return { ids: out, notes };
+}
+
+/* Dezelfde wijziging één keer melden, ook als meerdere mensen hetzelfde blok
+   gekozen hadden. */
+function noteChanges(notes){
+  notes.forEach(n => {
+    if(changes.some(c => c.key === n.key)) return;
+    changes.push(n);
+  });
+}
+
+function migrate(before){
   changes = [];
-  const told = new Set();
   PEOPLE.forEach(p => {
-    const next = new Set();
-    (before[p.key] || []).forEach(id => {
-      if(isOwn(id) || all.has(id)){ next.add(id); return; }
-      const old = id.split('|');
-      // Een podium dat we bewust verbergen is niet "vervallen"; stil weglaten.
-      if(HIDDEN_STAGES.includes(old[1])) return;
-      const [day, , title] = old;
-      const hits = [...all.values()].filter(e => e.day === day && e.title === title);
-      if(hits.length === 1){
-        next.add(hits[0].id);
-        if(!told.has('v' + id)){
-          told.add('v' + id);
-          changes.push({ kind:'moved', title,
-            from: `${old[3]} · ${old[1]}`, to: `${hits[0].st} · ${hits[0].stage}` });
-        }
-      } else if(!told.has('g' + id)){
-        told.add('g' + id);
-        changes.push({ kind:'gone', title, from: old[3] });
-      }
-    });
-    picks[p.key] = next;
+    const r = relink(before[p.key] || []);
+    picks[p.key] = new Set(r.ids);
+    noteChanges(r.notes);
   });
   if(changes.length) save();
 }
@@ -1044,6 +1149,7 @@ function chipRow(slug){
 
 function wireOcc(root){
   root.querySelectorAll('.occ').forEach(b => b.onclick = () => {
+    if(!unlocked){ openGate(); return; }
     const id = b.dataset.id;
     mine().has(id) ? mine().delete(id) : mine().add(id);
     save();
@@ -1231,6 +1337,7 @@ function renderSchema(){
     if(ev.target.classList.contains('info')){
       ev.stopPropagation(); openDetail(ev.target.dataset.slug); return;
     }
+    if(!unlocked){ openGate(); return; }
     const id = b.dataset.id;
     mine().has(id) ? mine().delete(id) : mine().add(id);
     save(); render(true);
@@ -1362,22 +1469,158 @@ function wireField(){
 }
 
 /* ============================================================
+   TOEGANG — de code is de groep
+   ============================================================ */
+let gateMode = 'code';
+let draftNames = [];
+
+function openGate(mode){
+  gateMode = mode || (syncState.unknown ? 'confirm' : 'code');
+  if(gateMode === 'names' && !draftNames.length){
+    draftNames = PEOPLE.map(p => ({ key:p.key, name:p.name }));
+  }
+  renderGate();
+  document.getElementById('gate').showModal();
+}
+
+function renderGate(msg){
+  const dlg = document.getElementById('gate');
+  let inner;
+  if(gateMode === 'code'){
+    inner = `<h2>Planning ontgrendelen</h2>
+      <p>De namen en de planning staan achter een gedeelde code. Het programma en het blokkenschema kun je ook zonder code bekijken.</p>
+      <div class="grow"><input type="password" id="gCode" placeholder="Toegangscode"
+        autocomplete="current-password" value="${esc(accessCode)}"></div>
+      ${msg ? `<p class="err">${esc(msg)}</p>` : ''}
+      <div class="acts"><button class="btn" id="gGo">Verder</button></div>`;
+  } else if(gateMode === 'confirm'){
+    inner = `<h2>Deze code kent nog geen groep</h2>
+      <p>Kijk eerst of je de code goed getypt hebt. Met een verkeerde code begin je een nieuwe, lege groep, en dan lijkt het alsof al je planning verdwenen is.</p>
+      <p>Klopt de code en ben je de eerste van je groep, dan kun je hem nu aanmaken.</p>
+      <div class="acts">
+        <button class="btn ghost" id="gBack">Code opnieuw invullen</button>
+        <button class="btn" id="gNew">Nieuwe groep beginnen</button>
+      </div>`;
+  } else {
+    inner = `<h2>${unlocked ? 'Namen' : 'Wie plannen er mee?'}</h2>
+      <p>${unlocked
+        ? 'Iedereen met de code kan de namen wijzigen. Wie je weghaalt raakt zijn planning kwijt.'
+        : 'Vul de namen in van iedereen die meeplant. Later aanpassen kan altijd.'}</p>
+      <div id="gList">${draftNames.map((n, i) => `
+        <div class="nrow">
+          <input type="text" data-i="${i}" value="${esc(n.name)}" placeholder="Naam" maxlength="40">
+          <button class="btn ghost rmn" data-i="${i}" aria-label="Naam weghalen">×</button>
+        </div>`).join('')}</div>
+      ${msg ? `<p class="err">${esc(msg)}</p>` : ''}
+      <div class="acts">
+        <button class="btn ghost" id="gAdd"${draftNames.length >= MAX_PEOPLE ? ' disabled' : ''}>Naam erbij</button>
+        <button class="btn" id="gSave">${unlocked ? 'Opslaan' : 'Groep aanmaken'}</button>
+      </div>`;
+  }
+  dlg.innerHTML = `<button class="x" id="gClose" aria-label="Sluiten">×</button>
+    <div class="gbody">${inner}</div>`;
+  wireGate();
+}
+
+function wireGate(){
+  const dlg = document.getElementById('gate');
+  dlg.querySelector('#gClose').onclick = () => { draftNames = []; dlg.close(); };
+
+  const code = dlg.querySelector('#gCode');
+  if(code){
+    const go = async () => {
+      const v = code.value.trim();
+      if(v.length < MIN_CODE){
+        renderGate('Een code van minstens ' + MIN_CODE + ' tekens.'); return;
+      }
+      accessCode = v;
+      await store.set(AKEY, accessCode);
+      syncState.need = false; syncState.unknown = false; syncState.err = null;
+      await pullPlans();
+      if(unlocked){ dlg.close(); if(syncState.dirty) pushPlan(); }
+      else if(syncState.unknown){ gateMode = 'confirm'; renderGate(); }
+      else renderGate(syncState.err || 'Dat lukte niet.');
+    };
+    dlg.querySelector('#gGo').onclick = go;
+    code.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); go(); } };
+    code.focus();
+  }
+
+  const back = dlg.querySelector('#gBack');
+  if(back) back.onclick = () => { gateMode = 'code'; renderGate(); };
+  const nw = dlg.querySelector('#gNew');
+  if(nw) nw.onclick = () => { draftNames = [{ name:'' }]; gateMode = 'names'; renderGate(); };
+
+  // Tijdens typen alleen de gegevens bijwerken, niet opnieuw tekenen: anders
+  // springt de cursor bij elke aanslag weg.
+  dlg.querySelectorAll('#gList input').forEach(inp => {
+    inp.oninput = () => { draftNames[+inp.dataset.i].name = inp.value; };
+  });
+  dlg.querySelectorAll('.rmn').forEach(b => b.onclick = () => {
+    draftNames.splice(+b.dataset.i, 1);
+    if(!draftNames.length) draftNames = [{ name:'' }];
+    renderGate();
+  });
+  const add = dlg.querySelector('#gAdd');
+  if(add) add.onclick = () => { draftNames.push({ name:'' }); renderGate(); };
+
+  const sv = dlg.querySelector('#gSave');
+  if(sv) sv.onclick = async () => {
+    const filled = draftNames.filter(n => n.name.trim());
+    if(!filled.length){ renderGate('Vul minstens één naam in.'); return; }
+    const weg = unlocked && PEOPLE.filter(p => !filled.some(n => n.key === p.key));
+    if(weg && weg.length && !confirm(
+        weg.map(p => p.name).join(', ') + (weg.length === 1 ? ' wordt' : ' worden') +
+        ' weggehaald, met planning en al. Doorgaan?')) return;
+    try{
+      if(unlocked) await savePeople(filled.map(n => ({ key:n.key, name:n.name.trim() })));
+      else await createGroup(filled.map(n => n.name.trim()));
+      draftNames = [];
+      dlg.close();
+    }catch(err){ renderGate(err.message || 'Dat lukte niet.'); }
+  };
+}
+
+function renderLocked(){
+  const nieuw = syncState.unknown;
+  document.getElementById('main').innerHTML = `<div class="mine"><div class="empty">
+    <b>${nieuw ? 'Deze code kent nog geen groep' : 'De planning is vergrendeld'}</b>
+    ${nieuw
+      ? 'Controleer of de code klopt, of begin een nieuwe groep.'
+      : 'Vul de gedeelde code in om de namen en de planning te zien. Het blokkenschema en het programma kun je gewoon bekijken.'}
+    <p style="margin:14px 0 0"><button class="btn" id="btnUnlock2">${
+      nieuw ? 'Verder' : 'Code invullen'}</button></p>
+  </div></div>`;
+  document.getElementById('btnUnlock2').onclick = () => openGate();
+}
+
+/* ============================================================
    RENDER — wie ben jij, en wat doen de anderen
    ============================================================ */
 function renderWho(){
   const host = document.getElementById('who');
   if(!host) return;
+  if(!unlocked){
+    host.innerHTML = `<button class="chip" id="btnUnlock">${
+      syncState.unknown ? 'Nieuwe groep beginnen…' : 'Planning ontgrendelen…'}</button>`;
+    host.querySelector('#btnUnlock').onclick = () => openGate();
+    return;
+  }
   host.innerHTML = PEOPLE.map(p => {
     const n = countOf(p.key);
     return `<button class="chip who" data-who="${p.key}" style="--pc:${p.c}"
       aria-pressed="${p.key === me}"><span class="dot"></span>${esc(p.name)}${
       n ? `<span class="cnt">${n}</span>` : ''}</button>`;
-  }).join('');
+  }).join('') + (API_URL
+    ? `<button class="chip" id="btnNames" title="Namen toevoegen of wijzigen">Namen…</button>`
+    : '');
   host.querySelectorAll('.who').forEach(b => b.onclick = async () => {
     me = b.dataset.who;
     await store.set(MEKEY, me);
     render();
   });
+  const nm = host.querySelector('#btnNames');
+  if(nm) nm.onclick = () => { draftNames = []; openGate('names'); };
 }
 
 function renderSamen(){
@@ -1501,6 +1744,7 @@ function render(keepScroll){
   document.getElementById('btnClear').disabled = none;
   if(view === 'schema') renderSchema();
   else if(view === 'programma') renderProgramma();
+  else if(!unlocked) renderLocked();
   else if(view === 'samen') renderSamen();
   else renderMine();
   const sc2 = document.getElementById('scroller');
@@ -1514,7 +1758,7 @@ document.getElementById('vSchema').onclick = () => { view = 'schema';    render(
 document.getElementById('vProg').onclick   = () => { view = 'programma'; render(); };
 document.getElementById('vMine').onclick   = () => { view = 'mine';      render(); };
 document.getElementById('vAll').onclick    = () => { view = 'samen';     render(); };
-document.getElementById('sync').onclick    = () => { if(API_URL) askCode(); };
+document.getElementById('sync').onclick    = () => { if(API_URL) openGate(); };
 document.getElementById('q').oninput = () => { if(view === 'programma') renderProgramma(); };
 
 document.getElementById('zoom').querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -1542,20 +1786,38 @@ document.getElementById('btnSync').onclick = () => loadRemote(true);
 (async function init(){
   renderChips();
 
+  if(!API_URL){
+    // Los bestand of artifact: geen groep, geen slot, gewoon in je eentje.
+    setPeople(SOLO);
+    unlocked = true;
+  } else {
+    accessCode = (await store.get(AKEY)) || '';
+    const cached = await store.get(GKEY);
+    // Namen uit de cache, zodat een netwerkhapering het scherm niet leegmaakt.
+    if(cached && accessCode){
+      try{ setPeople(JSON.parse(cached)); unlocked = PEOPLE.length > 0; }catch(e){}
+    }
+  }
+
   const saved = await store.get(MEKEY);
   if(saved && PEOPLE.some(p => p.key === saved)) me = saved;
-  accessCode = (await store.get(AKEY)) || '';
 
   const raw = await store.get(KEY);
   if(raw){
     try{
       const flat = JSON.parse(raw);
-      PEOPLE.forEach(p => { picks[p.key] = new Set(flat[p.key] || []); });
+      Object.keys(flat).forEach(k => { picks[k] = new Set(flat[k] || []); });
     }catch(e){}
   } else {
-    // Wie de eenpersoonsversie gebruikte houdt zijn keuze, onder eigen naam.
+    // Wie de eenpersoonsversie gebruikte houdt zijn keuze. Is de groep nog niet
+    // bekend, dan wacht die keuze tot je ontgrendeld hebt.
     const old = await store.get(OLDKEY);
-    if(old){ try{ picks[me] = new Set(JSON.parse(old)); }catch(e){} }
+    if(old){
+      try{
+        const list = JSON.parse(old);
+        if(me) picks[me] = new Set(list); else legacyPicks = list;
+      }catch(e){}
+    }
   }
 
   render();
