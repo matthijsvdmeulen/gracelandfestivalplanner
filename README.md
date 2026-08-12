@@ -18,7 +18,6 @@ Geen officiële uitgave van Graceland Festival. Het
 - Eén groep per toegangscode, dus andere vriendengroepen kunnen hem ook
   gebruiken zonder elkaars planning te zien. Namen stel je zelf in.
 - Doorlopende onderdelen (het veldprogramma) zelf inplannen per half uur
-- Kinderdorp en The Lounge blijven buiten beeld
 - Wijzigt het schema, dan verhuist je keuze mee en krijg je te zien wat er
   veranderd is
 - Werkt zonder netwerk: het laatst opgehaalde schema staat in de browser, en

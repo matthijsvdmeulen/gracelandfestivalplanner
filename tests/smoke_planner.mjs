@@ -153,11 +153,12 @@ check('keuze uit de eenpersoonsversie alsnog overgenomen en gemigreerd',
   stored()[ids[0]], ['za|Grasland|Nynke Laverman|17:30']);
 check('wijziging gemeld', /verplaatst/.test(q('#notice').textContent), true);
 
-/* --- verborgen podia ----------------------------------------------------- */
+/* --- alle podia staan er, ook Kinderdorp en The Lounge ------------------- */
 q('#vSchema').click();
 q('#tabs [data-day="vr"]').click();
-check('Kinderdorp en The Lounge zijn eruit',
-  qa('.lane .nm').map(e => e.firstChild.textContent.trim()), ['Grasland', 'Bospodium']);
+check('geen podium wordt verborgen',
+  qa('.lane .nm').map(e => e.firstChild.textContent.trim()),
+  ['Grasland', 'Bospodium', 'Kinderdorp', 'The Lounge']);
 
 /* --- kiezen synchroniseert ----------------------------------------------- */
 qa('.block')[0].click();
@@ -168,8 +169,9 @@ check('server heeft beide keuzes', server.groups['vriendengroep-een'].plans[ids[
 /* --- doorlopend zelf inplannen ------------------------------------------- */
 q('#vMine').click();
 check('doorlopend-paneel staat er', !!q('#fAdd'), true);
+// De dag begint nu om 10:00: Kinderdorp staat er weer bij en telt mee.
 check('halfuurstappen', [...q('#fStart').options].slice(0, 3).map(o => o.textContent),
-  ['19:00', '19:30', '20:00']);
+  ['10:00', '10:30', '11:00']);
 q('#fWhat').value = 'Labyrint';
 q('#fStart').value = [...q('#fStart').options].find(o => o.textContent === '20:30').value;
 q('#fDur').value = '90';
@@ -222,6 +224,19 @@ check('programmalijst', qa('.prog h3').map(e => e.textContent),
   ['Ezra', 'Labyrint', 'Lucky Fonz III', 'Nynke Laverman']);
 q('.more').click();
 check('detailvenster opent', q('#detail h2').textContent, 'Ezra');
+// Hetzelfde optreden staat ook in de lijst erachter; dat moet meebewegen.
+const inModal = q('#detail .occ');
+const zelfdeId = inModal.dataset.id;
+const inLijst = qa('.proglist .occ').find(b => b.dataset.id === zelfdeId);
+check('optreden staat in lijst en modal', !!inLijst, true);
+const wasAan = inModal.classList.contains('on');
+inModal.click();
+await settle();
+check('aanvinken in de modal licht ook in de lijst op',
+  inLijst.classList.contains('on'), !wasAan);
+check('en de modal zelf ook', inModal.classList.contains('on'), !wasAan);
+inModal.click();
+await settle();
 q('#closeDetail').click();
 
 /* --- wat een ander wijzigt komt binnen ----------------------------------- */
@@ -266,6 +281,21 @@ check('stipjes blijven beperkt', blok.querySelectorAll('.crowd i').length, 4);
 check('en de rest wordt geteld', blok.querySelector('.crowd b').textContent, '+19');
 check('de namen staan wel in de tooltip', /ook Naam/.test(blok.getAttribute('title')), true);
 check('polling vertraagt mee met de groep', await w.eval('pollDelay()'), 48000);
+
+/* --- een groep die van de server verdwenen is ---------------------------- */
+delete server.groups['grote-groep-24'];
+await w.eval('pullPlans()');
+await settle(300);
+check('verdwenen groep vergrendelt', qa('#who .who').length, 0);
+check('gecachete namen zijn opgeruimd',
+  w.localStorage.getItem('graceland2026:groep') || '', '');
+q('#btnUnlock').click();
+await settle();
+check('en de melding is een andere dan bij een nieuwe code',
+  /bestaat niet meer/.test(q('#gate h2').textContent), true);
+check('andere code invullen is de hoofdactie',
+  /Andere code/.test(q('#gBack').textContent), true);
+q('#gClose').click();
 
 console.log(`${pass} geslaagd, ${fail.length} gefaald`);
 fail.forEach(f => console.log('\nGEFAALD: ' + f));
