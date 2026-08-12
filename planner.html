@@ -86,9 +86,21 @@ button{font:inherit;color:inherit;cursor:pointer}
 .zoom{display:inline-flex;border:1px solid var(--line);border-radius:100px;overflow:hidden}
 .zoom button{border:0;background:transparent;padding:7px 12px;font-size:13px;line-height:1}
 .zoom button[aria-pressed="true"]{background:var(--peat);color:var(--paper)}
-.seg{display:inline-flex;border:1px solid var(--peat);border-radius:100px;overflow:hidden}
-.seg button{border:0;background:transparent;padding:8px 16px;font-size:13.5px;font-weight:600}
+/* Vier tabbladen passen op een smal scherm niet naast elkaar. Ze krijgen daar
+   een kortere naam, en als het dan nog niet past schuift de balk horizontaal -
+   met overflow:hidden viel "Samen" er onleesbaar buiten. */
+.seg{
+  display:inline-flex;border:1px solid var(--peat);border-radius:100px;
+  overflow-x:auto;overflow-y:hidden;max-width:100%;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.seg::-webkit-scrollbar{display:none}
+.seg button{
+  border:0;background:transparent;padding:8px 16px;font-size:13.5px;
+  font-weight:600;white-space:nowrap;flex:0 0 auto;
+}
 .seg button[aria-selected="true"]{background:var(--peat);color:var(--paper)}
+.seg .kort{display:none}
 
 /* ---------- schedule ---------- */
 .scroller{
@@ -389,6 +401,13 @@ dialog#gate .grow{margin-bottom:4px}
 .sync.warn{color:var(--ochre)}
 .sync.warn::before{background:var(--ochre);opacity:1}
 
+@media (max-width:560px){
+  /* Eigen regel voor de tabbladen, zodat ze de statusregel niet verdringen. */
+  .seg{flex:1 1 100%}
+  .seg button{padding:8px 11px;font-size:13px}
+  .seg .lang{display:none}
+  .seg .kort{display:inline}
+}
 @media (max-width:880px){
   .samen .cols{grid-template-columns:repeat(2,1fr)}
 }
@@ -421,9 +440,11 @@ dialog#gate .grow{margin-bottom:4px}
 
 <div class="bar">
   <div class="seg" role="tablist" aria-label="Weergave">
-    <button id="vSchema" role="tab" aria-selected="true">Blokkenschema</button>
+    <button id="vSchema" role="tab" aria-selected="true"
+      ><span class="lang">Blokkenschema</span><span class="kort">Schema</span></button>
     <button id="vProg" role="tab" aria-selected="false">Programma</button>
-    <button id="vMine" role="tab" aria-selected="false">Mijn programma</button>
+    <button id="vMine" role="tab" aria-selected="false"
+      ><span class="lang">Mijn programma</span><span class="kort">Mijn</span></button>
     <button id="vAll" role="tab" aria-selected="false">Samen</button>
   </div>
   <div class="spacer"></div>
