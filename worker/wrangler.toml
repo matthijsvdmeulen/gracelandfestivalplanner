@@ -3,7 +3,7 @@
 # Eenmalig opzetten:
 #   npm install -g wrangler && wrangler login
 #   wrangler kv namespace create PLANNER      # vul de id hieronder in
-#   wrangler secret put PLANNER_KEY           # de gedeelde toegangscode
+#   wrangler secret put GROUP_SALT            # lange willekeurige tekst
 #   wrangler deploy
 #
 # De route hangt de Worker voor GitHub Pages langs. Dat werkt alleen als het
