@@ -157,35 +157,6 @@ async function call(env, method, path, { code = CODE, body } = {}) {
     (await call(env, 'PUT', '/api/plan/bestaatniet', { body: { ids: [] } })).status, 404);
 }
 
-/* --- overname van de eenkoppige opzet met PLANNER_KEY -------------------- */
-{
-  const env = {
-    PLANNER: makeKV({
-      'plan:matthijs': JSON.stringify({ ids: ['do|Bospodium|Gracetalent|19:00'], rev: 5 }),
-      'plan:bart': JSON.stringify({ ids: ['vr|Grasland|Fenster|15:00'], rev: 7 }),
-    }),
-    GROUP_SALT: 'testzout',
-    PLANNER_KEY: 'oude-gedeelde-code',
-  };
-  const r = await call(env, 'GET', '/api/plan', { code: 'oude-gedeelde-code' });
-  check('oude code krijgt gewoon een groep', r.status, 200);
-  check('de vier namen staan er', r.body.people.map(p => p.name),
-    ['Matthijs', 'Ruben', 'Bart', 'Lisanne']);
-  check('bestaande planning is meeverhuisd',
-    r.body.plans.matthijs, ['do|Bospodium|Gracetalent|19:00']);
-  check('en die van de ander ook', r.body.plans.bart, ['vr|Grasland|Fenster|15:00']);
-  check('wie niets had begint leeg', r.body.plans.ruben, []);
-
-  // tweede keer mag niet opnieuw overnemen en zo wijzigingen terugdraaien
-  const pid = 'matthijs';
-  await call(env, 'PUT', '/api/plan/' + pid, { code: 'oude-gedeelde-code', body: { ids: [] } });
-  const again = await call(env, 'GET', '/api/plan', { code: 'oude-gedeelde-code' });
-  check('overname gebeurt maar één keer', again.body.plans.matthijs, []);
-
-  const vreemd = await call(env, 'GET', '/api/plan', { code: 'niet-de-oude-code' });
-  check('een andere code erft niets', vreemd.status, 404);
-}
-
 console.log(`${pass} geslaagd, ${fail.length} gefaald`);
 fail.forEach(f => console.log('\nGEFAALD: ' + f));
 process.exit(fail.length ? 1 : 0);

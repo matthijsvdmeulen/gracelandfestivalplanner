@@ -10,8 +10,10 @@
 #   GROUP_SALT              lange willekeurige tekst; hiermee wordt uit een
 #                           toegangscode een groeps-id afgeleid. Wijzigen maakt
 #                           alle bestaande groepen onvindbaar.
-#   PLANNER_KEY             alleen nog voor de overname van de eerste opzet met
-#                           een enkele gedeelde code; mag later weg.
+#
+# Let op: elke naam onder "secrets:" hieronder moet daadwerkelijk bestaan.
+# wrangler-action stopt met "Value for secret X not found in environment" als
+# er een in de lijst staat die je in GitHub hebt weggehaald.
 
 name: Worker uitrollen
 
@@ -47,7 +49,5 @@ jobs:
           # waar hij staat.
           secrets: |
             GROUP_SALT
-            PLANNER_KEY
         env:
           GROUP_SALT: ${{ secrets.GROUP_SALT }}
-          PLANNER_KEY: ${{ secrets.PLANNER_KEY }}

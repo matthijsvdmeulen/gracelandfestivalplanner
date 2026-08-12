@@ -65,9 +65,9 @@ zonder wrangler op je eigen machine. Eenmalig:
    *Edit Cloudflare Workers*. Het account-id staat rechts op de
    Workers-overzichtspagina.
 3. **GitHub → Settings → Secrets and variables → Actions**:
-   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `GROUP_SALT` (een lange
-   willekeurige tekst) en eventueel `PLANNER_KEY` (de code van de eerste opzet,
-   alleen nodig om die planning over te nemen).
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` en `GROUP_SALT` (een lange
+   willekeurige tekst). Elke naam die in `worker.yml` onder `secrets:` staat
+   moet ook echt bestaan, anders stopt de uitrol.
 4. **Actions → Worker uitrollen → Run workflow**.
 
 Daarna rolt elke wijziging in `worker/` zichzelf uit. Liever lokaal:
@@ -76,7 +76,7 @@ Daarna rolt elke wijziging in `worker/` zichzelf uit. Liever lokaal:
 cd worker
 npm install -g wrangler && wrangler login
 wrangler kv namespace create PLANNER     # vul de id in wrangler.toml
-wrangler secret put PLANNER_KEY          # gedeelde toegangscode
+wrangler secret put GROUP_SALT           # lange willekeurige tekst
 wrangler deploy
 ```
 

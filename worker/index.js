@@ -36,11 +36,6 @@ const COLORS = ["#2F5D8C", "#7A4E8C", "#A9691A", "#B23A48",
                 "#3E6B33", "#0F7A6E", "#8C5A2F", "#5A5A52",
                 "#1F6F8B", "#96548C", "#7C7A2E", "#9C3F6B"];
 
-/* De vier van het eerste uur. Gebruikte de planner nog één gedeelde
-   PLANNER_KEY, dan verhuist hun planning bij de eerste aanmelding mee. */
-const LEGACY = ["matthijs", "ruben", "bart", "lisanne"];
-const LEGACY_NAME = { matthijs:"Matthijs", ruben:"Ruben", bart:"Bart", lisanne:"Lisanne" };
-
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
@@ -57,16 +52,6 @@ const json = (body, status = 200) =>
       ...CORS,
     },
   });
-
-/** Vergelijking zonder vroege uitstap, zodat de code niet uit te proberen is. */
-function sameSecret(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) {
-    return false;
-  }
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 /**
  * Groeps-id uit de code. HMAC en niet een kale hash: zonder de geheime sleutel
@@ -96,25 +81,6 @@ async function readGroup(env, gid) {
   } catch {
     return null;
   }
-}
-
-/**
- * Eenmalige overname van de opzet met één gedeelde PLANNER_KEY: de vier namen
- * en hun bestaande lijstjes worden een gewone groep. De persoons-id's blijven
- * gelijk, zodat de opslag in de browser blijft kloppen.
- */
-async function adoptLegacy(env, gid, code) {
-  if (!env.PLANNER_KEY || !sameSecret(code, env.PLANNER_KEY)) return null;
-  const people = LEGACY.map((id, i) => ({
-    id, name: LEGACY_NAME[id], color: COLORS[i % COLORS.length],
-  }));
-  for (const id of LEGACY) {
-    const old = await env.PLANNER.get("plan:" + id);
-    if (old) await env.PLANNER.put(planKey(gid, id), old);
-  }
-  const group = { people, updated: Date.now(), from: "legacy" };
-  await env.PLANNER.put(groupKey(gid), JSON.stringify(group));
-  return group;
 }
 
 /** Namen opschonen. Bestaande id's blijven, nieuwe krijgen er een. */
@@ -188,7 +154,7 @@ export default {
       return json({ error: "toegangscode van minstens " + MIN_CODE + " tekens nodig" }, 401);
     }
     const gid = await groupIdFor(code, env.GROUP_SALT || "graceland-2026-standaardzout");
-    const group = await readGroup(env, gid) || await adoptLegacy(env, gid, code);
+    const group = await readGroup(env, gid);
 
     if (path === "/api/plan" && request.method === "GET") {
       if (!group) {
