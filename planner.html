@@ -282,9 +282,14 @@ footer a{color:var(--moss-deep)}
 }
 .info:hover{background:var(--peat);color:var(--paper);border-color:var(--peat)}
 .block.on .info{background:rgba(243,242,233,.22);border-color:transparent;color:var(--paper)}
+/* position:fixed en niet relative: een dialoog die met showModal() opengaat
+   hoort in de bovenste laag te zweven. Met relative telt hij mee in de
+   documentstroom en scrolt de browser de pagina naar het element toe - je
+   verloor dan je plek in de programmalijst zodra je "Lees meer" aantikte. */
 dialog#detail{
   border:1px solid var(--peat);border-radius:5px;padding:0;max-width:620px;width:calc(100% - 32px);
-  background:var(--paper);color:var(--peat);position:relative;max-height:86vh;
+  background:var(--paper);color:var(--peat);
+  position:fixed;inset:0;margin:auto;max-height:86vh;overflow:auto;
 }
 dialog#detail::backdrop{background:rgba(27,33,24,.55)}
 dialog#detail .x{
@@ -404,7 +409,10 @@ dialog#gate .grow{margin-bottom:4px}
 @media (max-width:560px){
   /* Eigen regel voor de tabbladen, zodat ze de statusregel niet verdringen. */
   .seg{flex:1 1 100%}
-  .seg button{padding:8px 11px;font-size:13px}
+  /* De knoppen groeien mee zodat ze de balk vullen in plaats van links te
+     blijven plakken. Krimpen doen ze niet onder hun tekst, dus bij heel weinig
+     ruimte schuift de balk nog steeds. */
+  .seg button{padding:8px 11px;font-size:13px;flex:1 1 auto;text-align:center}
   .seg .lang{display:none}
   .seg .kort{display:inline}
 }
@@ -479,7 +487,7 @@ dialog#gate .grow{margin-bottom:4px}
 <main id="main"></main>
 
 <footer>
-  <p>Een persoonlijk hulpmiddel, geen officiële uitgave van Graceland Festival. Tijden kunnen wijzigen; het festival zelf blijft de bron. <span class="noprint">De planning van jullie vier staat op de server en wordt gedeeld; lukt dat even niet, dan blijft je eigen keuze in deze browser staan en gaat hij later alsnog mee.</span></p>
+  <p>Geen officiële uitgave van Graceland Festival. Tijden en podia kunnen wijzigen; het <a href="https://gracelandfestival.nl/tijdschema/" target="_blank" rel="noopener">officiële tijdschema</a> blijft de bron. Gemaakt met <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>.</p>
 </footer>
 
 </div>
@@ -1508,19 +1516,20 @@ function renderGate(msg){
   const dlg = document.getElementById('gate');
   let inner;
   if(gateMode === 'code'){
-    inner = `<h2>Planning ontgrendelen</h2>
-      <p>De namen en de planning staan achter een gedeelde code. Het programma en het blokkenschema kun je ook zonder code bekijken.</p>
+    inner = `<h2>Groep openen of aanmaken</h2>
+      <p>Vul de code van je groep in. Nog geen groep? Verzin dan zelf een code: daarmee begin je er een, en die deel je met de mensen met wie je plant.</p>
+      <p>Het blokkenschema en het programma kun je ook zonder code bekijken.</p>
       <div class="grow"><input type="password" id="gCode" placeholder="Toegangscode"
         autocomplete="current-password" value="${esc(accessCode)}"></div>
       ${msg ? `<p class="err">${esc(msg)}</p>` : ''}
       <div class="acts"><button class="btn" id="gGo">Verder</button></div>`;
   } else if(gateMode === 'confirm'){
-    inner = `<h2>Deze code kent nog geen groep</h2>
-      <p>Kijk eerst of je de code goed getypt hebt. Met een verkeerde code begin je een nieuwe, lege groep, en dan lijkt het alsof al je planning verdwenen is.</p>
-      <p>Klopt de code en ben je de eerste van je groep, dan kun je hem nu aanmaken.</p>
+    inner = `<h2>Nieuwe groep aanmaken?</h2>
+      <p>Deze code kent nog geen groep. Ben je de eerste van je gezelschap, dan maak je hem nu aan en geef je daarna de namen op.</p>
+      <p>Hoorde je bij een bestaande groep? Kijk dan eerst op een typefout: met een verkeerde code begin je een lege groep naast die van je vrienden.</p>
       <div class="acts">
-        <button class="btn ghost" id="gBack">Code opnieuw invullen</button>
-        <button class="btn" id="gNew">Nieuwe groep beginnen</button>
+        <button class="btn ghost" id="gBack">Code nakijken</button>
+        <button class="btn" id="gNew">Groep aanmaken</button>
       </div>`;
   } else {
     inner = `<h2>${unlocked ? 'Namen' : 'Wie plannen er mee?'}</h2>
@@ -1605,12 +1614,12 @@ function wireGate(){
 function renderLocked(){
   const nieuw = syncState.unknown;
   document.getElementById('main').innerHTML = `<div class="mine"><div class="empty">
-    <b>${nieuw ? 'Deze code kent nog geen groep' : 'De planning is vergrendeld'}</b>
+    <b>${nieuw ? 'Deze code kent nog geen groep' : 'Plan samen met je vrienden'}</b>
     ${nieuw
-      ? 'Controleer of de code klopt, of begin een nieuwe groep.'
-      : 'Vul de gedeelde code in om de namen en de planning te zien. Het blokkenschema en het programma kun je gewoon bekijken.'}
+      ? 'Controleer of de code klopt, of maak er een nieuwe groep mee aan.'
+      : 'Vul de code van je groep in om samen te plannen. Nog geen groep? Verzin zelf een code en maak er een aan. Het blokkenschema en het programma kun je ook zonder code bekijken.'}
     <p style="margin:14px 0 0"><button class="btn" id="btnUnlock2">${
-      nieuw ? 'Verder' : 'Code invullen'}</button></p>
+      nieuw ? 'Verder' : 'Groep openen of aanmaken'}</button></p>
   </div></div>`;
   document.getElementById('btnUnlock2').onclick = () => openGate();
 }
@@ -1623,7 +1632,7 @@ function renderWho(){
   if(!host) return;
   if(!unlocked){
     host.innerHTML = `<button class="chip" id="btnUnlock">${
-      syncState.unknown ? 'Nieuwe groep beginnen…' : 'Planning ontgrendelen…'}</button>`;
+      syncState.unknown ? 'Nieuwe groep aanmaken…' : 'Groep openen of aanmaken…'}</button>`;
     host.querySelector('#btnUnlock').onclick = () => openGate();
     return;
   }
