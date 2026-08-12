@@ -101,7 +101,13 @@ check('blokkenschema is gewoon te zien', qa('.block').length > 0, true);
 check('status meldt vergrendeld', q('#sync').textContent, 'Vergrendeld');
 
 q('#vMine').click();
-check('mijn programma is vergrendeld', /vergrendeld/i.test(q('.empty').textContent), true);
+check('mijn programma zit achter de code',
+  /code van je groep/.test(q('.empty').textContent), true);
+check('het slot nodigt uit tot aanmaken',
+  /aanmaken/i.test(q('#btnUnlock').textContent), true);
+check('voettekst noemt de disclaimer en Claude',
+  /Geen offici\u00eble uitgave/.test(q('footer').textContent) &&
+  /Claude Code/.test(q('footer').textContent), true);
 
 /* --- klikken op een blok vraagt om de code ------------------------------- */
 q('#vSchema').click();
@@ -114,13 +120,17 @@ check('niets gekozen zolang het op slot zit', server.puts.length, 0);
 q('#gCode').value = 'vriendengroep-een';
 q('#gGo').click();
 await settle(400);
-check('onbekende code vraagt om bevestiging', /kent nog geen groep/.test(q('#gate h2').textContent), true);
+check('onbekende code vraagt om bevestiging',
+  /kent nog geen groep/.test(q('#gate').textContent), true);
+check('aanmaken is de duidelijke uitweg', /aanmaken/i.test(q('#gNew').textContent), true);
 check('nog steeds vergrendeld', qa('#who .who').length, 0);
 
 /* --- groep aanmaken ------------------------------------------------------ */
 q('#gNew').click();
 await settle();
 check('namenscherm verschijnt', /Wie plannen er mee/.test(q('#gate h2').textContent), true);
+check('de dialoog zweeft en sleept de pagina niet mee',
+  w.getComputedStyle(q('#detail')).position, 'fixed');
 const typ = (i, v) => {
   const inp = qa('#gList input')[i];
   inp.value = v;
