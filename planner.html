@@ -554,11 +554,6 @@ function setPeople(list){
   if(!PEOPLE.some(p => p.key === me)) me = PEOPLE.length ? PEOPLE[0].key : null;
 }
 
-/* Podia die we niet in ons overzicht willen. Ze verdwijnen uit het
-   blokkenschema, uit de programmalijst en uit de tellingen; het schema zelf
-   blijft compleet, dus dit terugdraaien is één regel.                      */
-const HIDDEN_STAGES = ['Kinderdorp', 'The Lounge'];
-
 /* Zelf ingeplande doorlopende onderdelen krijgen een id met dit voorvoegsel,
    zodat ze niet met een blok uit het schema te verwarren zijn.             */
 const OWN = 'zelf';
@@ -762,14 +757,12 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 function prepare(days){
   days.forEach(d => {
     d.stages = [];
-    d.events = d.items
-      .filter(([stage]) => !HIDDEN_STAGES.includes(stage))
-      .map(([stage,title,st,en,cat,slug]) => {
-        if(!d.stages.includes(stage)) d.stages.push(stage);
-        return { id: d.key+'|'+stage+'|'+title+'|'+st, day:d.key, stage, title, st, en,
-                 cat: CATS[cat] ? cat : 'O', slug: slug || null,
-                 a: toMin(st), b: toMin(en) };
-      });
+    d.events = d.items.map(([stage,title,st,en,cat,slug]) => {
+      if(!d.stages.includes(stage)) d.stages.push(stage);
+      return { id: d.key+'|'+stage+'|'+title+'|'+st, day:d.key, stage, title, st, en,
+               cat: CATS[cat] ? cat : 'O', slug: slug || null,
+               a: toMin(st), b: toMin(en) };
+    });
     // Een dag zonder blokken zou Math.min(...[]) op Infinity zetten.
     d.min = d.events.length ? Math.min(...d.events.map(e => e.a)) : 9 * 60;
     d.max = d.events.length ? Math.max(...d.events.map(e => e.b)) : 24 * 60;
@@ -845,6 +838,7 @@ let syncState = { on:false, at:null, err:null, busy:false,
 let revs = {};              // persoon -> laatst geziene revisie op de server
 let accessCode = '';
 let legacyPicks = null;     // keuze uit de eenpersoonsversie, nog te plaatsen
+let hadGroup = false;       // we toonden namen die de server niet (meer) kent
 
 async function api(path, opts){
   const res = await fetch(API_URL + path, Object.assign({
@@ -873,6 +867,7 @@ async function api(path, opts){
    te versturen - anders overschrijft een ronde je laatste klik. */
 function adopt(data){
   syncState.unknown = false;
+  hadGroup = false;
   if(Array.isArray(data.people)){
     setPeople(data.people);
     store.set(GKEY, JSON.stringify(data.people));
@@ -914,8 +909,12 @@ async function pullPlans(){
     else renderSync();
   }catch(err){
     if(err.unknown){
-      // Een code die nog geen groep kent. Niet stilzwijgend een lege groep
-      // tonen: dat is niet van "al mijn planning is weg" te onderscheiden.
+      // Een code die geen groep kent. Dat is een hard antwoord van de server,
+      // geen hapering: de namen uit de cache moeten weg, anders komt een oude
+      // browser bij de volgende start weer met diezelfde groep op de proppen
+      // en maakt iemand hem per ongeluk opnieuw aan.
+      hadGroup = unlocked || !!(await store.get(GKEY));
+      await store.set(GKEY, '');
       syncState.unknown = true; syncState.err = null; unlocked = false; render();
       return;
     }
@@ -1073,8 +1072,6 @@ function relink(list){
   (list || []).forEach(id => {
     if(isOwn(id) || all.has(id)){ out.push(id); return; }
     const old = id.split('|');
-    // Een podium dat we bewust verbergen is niet "vervallen"; stil weglaten.
-    if(HIDDEN_STAGES.includes(old[1])) return;
     const [day, , title] = old;
     const hits = [...all.values()].filter(e => e.day === day && e.title === title);
     if(hits.length === 1){
@@ -1190,13 +1187,21 @@ function chipRow(slug){
     data-id="${esc(e.id)}">${d.label.slice(0,2)} ${e.st} · ${esc(e.stage)}</button>`).join('');
 }
 
+/* Hetzelfde optreden staat vaak twee keer in beeld: in de programmalijst en in
+   het detailvenster. Werk ze allebei bij, anders lijkt een keuze uit de modal
+   niet aan te komen. */
+function refreshOcc(){
+  document.querySelectorAll('.occ').forEach(b =>
+    b.classList.toggle('on', mine().has(b.dataset.id)));
+}
+
 function wireOcc(root){
   root.querySelectorAll('.occ').forEach(b => b.onclick = () => {
     if(!unlocked){ openGate(); return; }
     const id = b.dataset.id;
     mine().has(id) ? mine().delete(id) : mine().add(id);
     save();
-    b.classList.toggle('on');
+    refreshOcc();
     renderTabs(); renderWho();
   });
 }
@@ -1540,13 +1545,21 @@ function renderGate(msg){
       ${msg ? `<p class="err">${esc(msg)}</p>` : ''}
       <div class="acts"><button class="btn" id="gGo">Verder</button></div>`;
   } else if(gateMode === 'confirm'){
-    inner = `<h2>Nieuwe groep aanmaken?</h2>
-      <p>Deze code kent nog geen groep. Ben je de eerste van je gezelschap, dan maak je hem nu aan en geef je daarna de namen op.</p>
-      <p>Hoorde je bij een bestaande groep? Kijk dan eerst op een typefout: met een verkeerde code begin je een lege groep naast die van je vrienden.</p>
-      <div class="acts">
-        <button class="btn ghost" id="gBack">Code nakijken</button>
-        <button class="btn" id="gNew">Groep aanmaken</button>
-      </div>`;
+    inner = hadGroup
+      ? `<h2>Deze groep bestaat niet meer</h2>
+        <p>Je browser had nog de namen van een groep met deze code, maar de server kent hem niet. Waarschijnlijk is de code gewijzigd of is de groep opgeruimd.</p>
+        <p><strong>Vraag eerst de huidige code na bij je groep.</strong> Maak je hier een nieuwe groep aan, dan staat die los van die van je vrienden en begint iedereen opnieuw.</p>
+        <div class="acts">
+          <button class="btn ghost" id="gNew">Toch een nieuwe groep</button>
+          <button class="btn" id="gBack">Andere code invullen</button>
+        </div>`
+      : `<h2>Nieuwe groep aanmaken?</h2>
+        <p>Deze code kent nog geen groep. Ben je de eerste van je gezelschap, dan maak je hem nu aan en geef je daarna de namen op.</p>
+        <p>Hoorde je bij een bestaande groep? Kijk dan eerst op een typefout: met een verkeerde code begin je een lege groep naast die van je vrienden.</p>
+        <div class="acts">
+          <button class="btn ghost" id="gBack">Code nakijken</button>
+          <button class="btn" id="gNew">Groep aanmaken</button>
+        </div>`;
   } else {
     inner = `<h2>${unlocked ? 'Namen' : 'Wie plannen er mee?'}</h2>
       <p>${unlocked
@@ -1630,9 +1643,12 @@ function wireGate(){
 function renderLocked(){
   const nieuw = syncState.unknown;
   document.getElementById('main').innerHTML = `<div class="mine"><div class="empty">
-    <b>${nieuw ? 'Deze code kent nog geen groep' : 'Plan samen met je vrienden'}</b>
+    <b>${!nieuw ? 'Plan samen met je vrienden'
+        : hadGroup ? 'Deze groep bestaat niet meer' : 'Deze code kent nog geen groep'}</b>
     ${nieuw
-      ? 'Controleer of de code klopt, of maak er een nieuwe groep mee aan.'
+      ? (hadGroup
+          ? 'De server kent deze code niet meer. Vraag de huidige code na bij je groep voordat je een nieuwe aanmaakt.'
+          : 'Controleer of de code klopt, of maak er een nieuwe groep mee aan.')
       : 'Vul de code van je groep in om samen te plannen. Nog geen groep? Verzin zelf een code en maak er een aan. Het blokkenschema en het programma kun je ook zonder code bekijken.'}
     <p style="margin:14px 0 0"><button class="btn" id="btnUnlock2">${
       nieuw ? 'Verder' : 'Groep openen of aanmaken'}</button></p>

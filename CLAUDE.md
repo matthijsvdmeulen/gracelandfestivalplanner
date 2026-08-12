@@ -112,10 +112,17 @@ opnieuw begint te klikken.
 Persoons-id's zijn los van de weergavenaam, zodat hernoemen niemand zijn
 planning kost; verwijderen ruimt de planning van die persoon wél op.
 
-**Verborgen podia zijn een keuze van de planner, niet van de scraper.**
-`HIDDEN_STAGES` in `planner.html` haalt Kinderdorp en The Lounge uit het beeld;
-`schema.json` blijft compleet. Filter ze niet weg in de scraper - dan is het
-niet meer terug te draaien zonder opnieuw te scrapen.
+**Alle podia staan in beeld.** Kinderdorp en The Lounge waren een tijd
+verborgen omdat de eerste groep ze niet gebruikte; nu de planner ook door
+anderen gebruikt wordt, staan ze er weer bij. Wie ze niet wil zien gebruikt de
+soortfilters (Kinderen, Tieners). Filter podia niet weg in de scraper - dan is
+het niet meer terug te draaien zonder opnieuw te scrapen.
+
+**Een groep die de server niet kent, wordt niet stilzwijgend hersteld.** Bij
+`unknown` gooit de planner de gecachete namen weg en meldt hij iets anders dan
+bij een nog onbekende code: anders komt een oude browser telkens terug met een
+verdwenen groep en maakt iemand hem per ongeluk opnieuw aan. De Worker maakt
+zelf nooit een groep aan; dat kan alleen met een expliciete `POST /api/group`.
 
 **Het programma blijft zonder code te bekijken.** Alleen de namen en de
 planning zitten achter het slot. Zet het blokkenschema en de programmalijst er
