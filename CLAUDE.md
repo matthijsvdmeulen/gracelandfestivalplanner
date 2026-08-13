@@ -124,6 +124,12 @@ bij een nog onbekende code: anders komt een oude browser telkens terug met een
 verdwenen groep en maakt iemand hem per ongeluk opnieuw aan. De Worker maakt
 zelf nooit een groep aan; dat kan alleen met een expliciete `POST /api/group`.
 
+**De nu-streep leest de klok in de festivalzone.** `nowOnTimeline()` gaat via
+`Intl` over `Europe/Amsterdam` en niet over de klok van het toestel, zodat
+iemand die van elders meekijkt geen streep op het verkeerde moment ziet. `nowFn`
+is het haakje waarmee de test een vast moment kan zetten; vervang dat niet door
+een rechtstreekse `new Date()`.
+
 **Het programma blijft zonder code te bekijken.** Alleen de namen en de
 planning zitten achter het slot. Zet het blokkenschema en de programmalijst er
 niet ook achter: dat is openbare festivalinformatie, en de planner is zo meteen
@@ -155,7 +161,8 @@ alleen als je migratie voor bestaande opslag meelevert.
   "geen blokken herkend" in plaats van stilletjes onzin op te leveren.
 - Tijden na middernacht horen bij de dag ervoor. `to_min()` telt 24 uur op bij
   een uur onder de 6. Zowel Python als JavaScript hebben hun eigen kopie van
-  die regel; houd ze gelijk.
+  die regel, en `nowOnTimeline()` in de planner een derde: die schuift de
+  nu-streep voor 06:00 naar de avond ervoor. Houd ze gelijk.
 - Categorie per programma komt van de site, met voorrangsvolgorde
   Kinderen → Tieners → Muziek → Performance → Spreker → Workshop → Veld.
   Partnerlabels (LCC+, IJM, Protestantse Kerk Nederland, Spectrum, Leger des

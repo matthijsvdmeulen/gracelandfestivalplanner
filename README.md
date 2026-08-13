@@ -11,6 +11,8 @@ Geen officiële uitgave van Graceland Festival. Het
 ## Wat het doet
 
 - Blokkenschema per dag, met filters op soort en drie zoomniveaus
+- Tijdens het festival een streep op het huidige moment, en je begint meteen op
+  de dag van vandaag
 - Programmaoverzicht met beschrijvingen, foto's en zoeken
 - Eigen selectie met overlapwaarschuwing, export naar tekst en `.ics`
 - Gedeeld met je vrienden: kies bovenin wie je bent, zie op elk blok wie er nog

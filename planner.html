@@ -136,6 +136,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 .gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--line-soft);pointer-events:none}
 .gridline.hr{background:var(--line)}
 
+/* Waar we nu zijn in de dag. Alleen tijdens het festival, op de dag zelf. */
+.nowline{
+  position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;
+  background:var(--ochre);opacity:.8;pointer-events:none;z-index:3;
+}
+.ruler .nowtick{
+  position:absolute;top:3px;transform:translateX(-50%);
+  font-family:'Space Mono',monospace;font-size:10px;font-weight:700;
+  color:var(--paper);background:var(--ochre);padding:1px 6px;border-radius:100px;
+  white-space:nowrap;pointer-events:none;z-index:5;
+}
+
 .block{
   position:absolute;
   border:1px solid var(--bd,var(--line));
@@ -753,6 +765,50 @@ let DAYS = [
 const toMin = s => { const [h,m] = s.split(':').map(Number); let t = h*60+m; if(h < 6) t += 1440; return t; };
 const fmt = t => { const h = Math.floor(t/60)%24, m = t%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); };
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad2 = n => String(n).padStart(2, '0');
+const shiftIso = (iso, plus) => {
+  const dt = new Date(+iso.slice(0,4), +iso.slice(4,6)-1, +iso.slice(6,8) + plus);
+  return `${dt.getFullYear()}${pad2(dt.getMonth()+1)}${pad2(dt.getDate())}`;
+};
+
+/* ============================================================
+   NU — waar zijn we in het schema
+
+   De tijd komt uit de festivalzone en niet van de klok van het toestel, zodat
+   iemand die vanuit een andere tijdzone meekijkt geen streep op het verkeerde
+   moment ziet. nowFn is een haakje voor de test.
+   ============================================================ */
+const ZONE = 'Europe/Amsterdam';
+let nowFn = () => new Date();
+
+function nowInZone(){
+  const parts = new Intl.DateTimeFormat('nl-NL', {
+    timeZone: ZONE, year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hourCycle:'h23'
+  }).formatToParts(nowFn());
+  const p = {};
+  parts.forEach(x => { p[x.type] = x.value; });
+  return { iso: p.year + p.month + p.day, h: +p.hour, m: +p.minute };
+}
+
+/* Welke festivaldag is het, en hoe laat op de tijdas van die dag? Voor 06:00
+   hoor je nog bij de avond ervoor - dezelfde regel als toMin(). */
+function nowOnTimeline(){
+  const n = nowInZone();
+  let iso = n.iso, min = n.h * 60 + n.m;
+  if(n.h < 6){ min += 1440; iso = shiftIso(iso, -1); }
+  const day = DAYS.find(d => d.iso === iso);
+  return day ? { day, min } : null;
+}
+
+/* De x van de nu-streep op een dag, of null als die er niet hoort te staan. */
+function nowX(d){
+  const nu = nowOnTimeline();
+  if(!nu || nu.day.key !== d.key) return null;
+  const start = Math.floor(d.min/60)*60, end = Math.ceil(d.max/60)*60;
+  if(nu.min < start || nu.min > end) return null;
+  return { x: (nu.min - start) * ppm, min: nu.min };
+}
 
 function prepare(days){
   days.forEach(d => {
@@ -1346,6 +1402,9 @@ function renderSchema(){
   for(let t = start; t <= end; t += 30){
     gl += `<div class="gridline ${t%60===0?'hr':''}" style="left:${(t-start)*ppm}px"></div>`;
   }
+  // De streep loopt per lane mee; samen vormen ze één doorlopende lijn.
+  const nu = nowX(d);
+  if(nu) gl += `<div class="nowline" style="left:${nu.x}px"></div>`;
 
   const rows = d.stages.map(stage => {
     const evts = d.events.filter(e => e.stage === stage);
@@ -1378,10 +1437,19 @@ function renderSchema(){
   document.getElementById('main').innerHTML = `
     <div class="scroller" id="scroller"><div class="sheet">
       <div class="row rulerrow"><div class="lane"></div>
-        <div class="ruler" style="width:${W}px">${ruler}</div></div>
+        <div class="ruler" style="width:${W}px">${ruler}${nu
+          ? `<span class="nowtick" id="nowtick" style="left:${nu.x}px">nu ${fmt(nu.min)}</span>` : ''}</div></div>
       ${rows}
     </div></div>
     <p class="hint">Tik een blok aan om het aan je programma toe te voegen · ⚠ betekent dat twee keuzes elkaar overlappen</p>`;
+
+  // Eén keer per sessie meeschuiven naar het heden, daarna niet meer: anders
+  // sleurt de planner je bij elke ronde terug terwijl je zit te bladeren.
+  if(nu && !sprongNaarNu){
+    sprongNaarNu = true;
+    const sc = document.getElementById('scroller');
+    if(sc) sc.scrollLeft = Math.max(0, nu.x - sc.clientWidth / 3);
+  }
 
   document.querySelectorAll('.block').forEach(b => b.onclick = ev => {
     if(ev.target.classList.contains('info')){
@@ -1745,14 +1813,9 @@ function asText(){
 function icsEscape(s){ return s.replace(/[\\;,]/g, m => '\\'+m).replace(/\n/g,'\\n'); }
 
 function asIcs(){
-  const pad = n => String(n).padStart(2,'0');
   const stamp = t => {
     const h = Math.floor(t/60), m = t%60;
-    return { dayShift: h >= 24 ? 1 : 0, hh: pad(h%24), mm: pad(m) };
-  };
-  const shiftIso = (iso, plus) => {
-    const dt = new Date(+iso.slice(0,4), +iso.slice(4,6)-1, +iso.slice(6,8) + plus);
-    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}`;
+    return { dayShift: h >= 24 ? 1 : 0, hh: pad2(h%24), mm: pad2(m) };
   };
   let out = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mijn Graceland 2026//NL','CALSCALE:GREGORIAN'];
   selectedSorted().forEach(({d,e}, i) => {
@@ -1776,6 +1839,23 @@ function download(name, text, mime){
   a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+
+/* Elke halve minuut de streep verzetten. Alleen als er iets verandert aan of
+   hij er hoort te staan, tekenen we het schema opnieuw - dat scheelt een
+   onderbreking midden in een tik. */
+let sprongNaarNu = false;
+function tickNow(){
+  if(view !== 'schema') return;
+  const d = DAYS.find(x => x.key === activeDay);
+  if(!d) return;
+  const nu = nowX(d);
+  const staat = !!document.querySelector('.nowline');
+  if(!!nu !== staat){ render(true); return; }
+  if(!nu) return;
+  document.querySelectorAll('.nowline').forEach(el => { el.style.left = nu.x + 'px'; });
+  const tick = document.getElementById('nowtick');
+  if(tick){ tick.style.left = nu.x + 'px'; tick.textContent = 'nu ' + fmt(nu.min); }
 }
 
 /* ============================================================
@@ -1882,7 +1962,12 @@ document.getElementById('btnSync').onclick = () => loadRemote(true);
     }
   }
 
+  // Tijdens het festival begin je op de dag van vandaag in plaats van donderdag.
+  const nu = nowOnTimeline();
+  if(nu) activeDay = nu.day.key;
+
   render();
+  setInterval(tickNow, 30 * 1000);
   loadRemote(false);
   pullPlans();
 

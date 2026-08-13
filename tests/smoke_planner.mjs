@@ -282,6 +282,50 @@ check('en de rest wordt geteld', blok.querySelector('.crowd b').textContent, '+1
 check('de namen staan wel in de tooltip', /ook Naam/.test(blok.getAttribute('title')), true);
 check('polling vertraagt mee met de groep', await w.eval('pollDelay()'), 48000);
 
+/* --- de nu-streep --------------------------------------------------------- */
+const zetTijd = async iso => {
+  await w.eval(`nowFn = () => new Date(${JSON.stringify(iso)})`);
+  await w.eval('render(true)');
+  await settle();
+};
+q('#vSchema').click();
+
+// Vrijdagavond 21:15. De dag loopt van 10:00 tot 23:00, dus start = 600.
+await zetTijd('2026-08-14T21:15:00+02:00');
+q('#tabs [data-day="vr"]').click();
+await settle();
+check('nu-streep staat er op de dag zelf', qa('.nowline').length > 0, true);
+check('label noemt de tijd', q('#nowtick').textContent, 'nu 21:15');
+check('streep op de juiste plek', q('#nowtick').style.left,
+  ((21 * 60 + 15 - 600) * 2.2) + 'px');
+check('per podium een stukje streep', qa('.nowline').length, qa('.row .track').length);
+
+// Zelfde moment, maar je kijkt naar een andere dag: dan hoort er niets te staan.
+q('#tabs [data-day="za"]').click();
+await settle();
+check('geen streep op een andere dag', qa('.nowline').length, 0);
+
+// Na middernacht hoor je nog bij de avond ervoor: zondag 00:00 telt als
+// zaterdag, op 24:00 van de tijdas.
+await zetTijd('2026-08-16T00:00:00+02:00');
+q('#tabs [data-day="za"]').click();
+await settle();
+check('na middernacht nog bij de dag ervoor', qa('.nowline').length > 0, true);
+check('en op het einde van de tijdas', q('#nowtick').textContent, 'nu 00:00');
+
+// Buiten het festival helemaal geen streep.
+await zetTijd('2026-09-01T14:00:00+02:00');
+check('buiten het festival geen streep', qa('.nowline').length, 0);
+check('en geen label', !!q('#nowtick'), false);
+
+// Ver voor het begin van de dag ook niet.
+await zetTijd('2026-08-14T07:00:00+02:00');
+q('#tabs [data-day="vr"]').click();
+await settle();
+check('voor het eerste blok nog geen streep', qa('.nowline').length, 0);
+
+await zetTijd('2026-09-01T14:00:00+02:00');
+
 /* --- een groep die van de server verdwenen is ---------------------------- */
 delete server.groups['grote-groep-24'];
 await w.eval('pullPlans()');
