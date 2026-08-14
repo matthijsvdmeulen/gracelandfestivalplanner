@@ -316,8 +316,20 @@ dialog#detail h2{
   letter-spacing:-.015em;margin:0 0 8px;line-height:1.1;
 }
 dialog#detail p{font-size:14.5px;line-height:1.6;margin:0 0 12px;max-width:60ch}
+dialog#detail .vid{margin:18px 0 6px}
+dialog#detail .vid h3{
+  font-family:'Archivo',sans-serif;font-size:12px;font-weight:600;
+  letter-spacing:.02em;color:var(--soil);margin:0 0 6px;
+}
+dialog#detail .vid .frame{
+  position:relative;padding-top:56.25%;border-radius:var(--radius);
+  overflow:hidden;background:var(--peat);
+}
+dialog#detail .vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 dialog#detail .dlinks{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
 dialog#detail .dlinks a{color:var(--moss-deep);font-size:13px}
+.prog a.sp{font-size:12.5px;color:var(--moss-deep);margin-left:12px;white-space:nowrap}
+.prog a.sp:hover{text-decoration:underline}
 .item .what a.dt{cursor:pointer;border-bottom:1px solid var(--line)}
 .item .what a.dt:hover{border-bottom-color:var(--peat)}
 
@@ -1302,7 +1314,8 @@ function renderProgramma(){
           .map(t => `<span>${esc(t)}</span>`).join('')}</p>
         ${p.body && p.body[0] ? `<p class="lead">${esc(p.body[0])}</p>` : ''}
         <div class="occs">${chipRow(p.slug)}</div>
-        <button class="more" data-slug="${esc(p.slug)}">Lees meer</button>
+        <button class="more" data-slug="${esc(p.slug)}">Lees meer</button>${isMuziek(p)
+          ? ` <a class="sp" href="${esc(spotifyUrl(p.title))}" target="_blank" rel="noopener">Spotify ↗</a>` : ''}
       </div>
     </article>`).join('')}</div>`;
 
@@ -1330,8 +1343,19 @@ function openDetail(slug){
         .map(t => `<span>${esc(t)}</span>`).join('')}</p>
       <div class="occs">${chipRow(slug)}</div>
       ${(p.body||[]).map(t => `<p>${esc(t)}</p>`).join('')}
-      ${(p.links||[]).length ? `<p class="dlinks">${p.links.map(l =>
-        `<a href="${esc(l)}" target="_blank" rel="noopener">${esc(hostOf(l))}</a>`).join('')}</p>` : ''}
+      ${(p.videos||[]).map(v => `<div class="vid">
+        ${v.title ? `<h3>${esc(v.title)}</h3>` : ''}
+        <div class="frame"><iframe
+          src="https://www.youtube-nocookie.com/embed/${esc(v.id)}"
+          title="${esc(v.title || p.title)}" loading="lazy" allowfullscreen
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        ></iframe></div></div>`).join('')}
+      ${(() => {
+        const ls = (isMuziek(p) ? [`<a href="${esc(spotifyUrl(p.title))}" target="_blank" rel="noopener">Zoek op Spotify</a>`] : [])
+          .concat((p.links||[]).map(l => `<a href="${esc(l)}" target="_blank" rel="noopener">${esc(hostOf(l))}</a>`));
+        return ls.length ? `<p class="dlinks">${ls.join('')}</p>` : '';
+      })()}
       ${p.url ? `<p class="dlinks"><a href="${esc(p.url)}" target="_blank" rel="noopener">Op gracelandfestival.nl</a></p>` : ''}
     </div>`;
   wireOcc(dlg);
@@ -1339,6 +1363,11 @@ function openDetail(slug){
   dlg.onclick = ev => { if(ev.target === dlg) dlg.close(); };
   dlg.showModal();
 }
+
+/* Een zoeklink en geen artiest-id: die blijft werken als het festival de
+   pagina wijzigt, en we hoeven er niets voor op te halen. */
+const spotifyUrl = title => 'https://open.spotify.com/search/' + encodeURIComponent(title);
+const isMuziek = p => (p.cats || []).includes('Muziek');
 
 function hostOf(u){
   try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; }

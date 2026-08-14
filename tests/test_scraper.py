@@ -55,9 +55,17 @@ check("detail: losse url wordt een link",
       d["links"], ["https://open.spotify.com/embed/artist/123"])
 check("detail: afbeelding", d["image"], "https://gracelandfestival.nl/img/x.jpg")
 
+check("video: id en titel uit de embed", d["videos"],
+      [{"id": "abc123XYZ_-", "title": "Testartiest - Officiele video"},
+       {"id": "tweede12345", "title": "Nog een video"}])
+check("video: niet meer dan twee", len(d["videos"]), 2)
+check("video: alleen YouTube, geen Spotify-embed",
+      any("spotify" in v["id"].lower() for v in d["videos"]), False)
+
 # --- detailpagina zonder tabel --------------------------------------------- #
 c = S.parse_detail(read("detail_doorlopend.html"), "doorlopend-veldding")
 check("doorlopend: geen speeltijden", c["when"], [])
+check("doorlopend: geen video's", c["videos"], [])
 check("doorlopend: wel een beschrijving", len(c["body"]), 1)
 check("doorlopend: categoriecode", S.code_for(c["cats"]), "V")
 

@@ -14,6 +14,8 @@ Geen officiële uitgave van Graceland Festival. Het
 - Tijdens het festival een streep op het huidige moment, en je begint meteen op
   de dag van vandaag
 - Programmaoverzicht met beschrijvingen, foto's en zoeken
+- Bij een artiest de video die het festival zelf op zijn pagina zet, en bij
+  muziek een zoeklink naar Spotify
 - Eigen selectie met overlapwaarschuwing, export naar tekst en `.ics`
 - Gedeeld met je vrienden: kies bovenin wie je bent, zie op elk blok wie er nog
   meer heen gaat, en in **Samen** alle planningen naast elkaar
