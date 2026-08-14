@@ -140,6 +140,17 @@ bruikbaar voor wie hem opent.
 een in-memory laatste redmiddel. Dat is nodig omdat het bestand ook binnen een
 Claude-artifact moet draaien, waar `localStorage` niet beschikbaar is.
 
+**Van video's slaan we alleen het id op.** `parse_detail` haalt de
+YouTube-embeds van de detailpagina en bewaart per programma hoogstens twee
+`{id, title}`. De planner zet ze pas in een iframe als iemand het detailvenster
+opent, via `youtube-nocookie.com`. Haal geen video's binnen en zet geen
+thumbnails in de repo; het blijft materiaal van het festival en van YouTube.
+
+**De Spotify-link is een zoeklink op de naam.** `spotifyUrl()` bouwt
+`open.spotify.com/search/<titel>`, en dat staat er bij alles met de categorie
+Muziek. Bewust geen artiest-id uit de pagina: dat breekt zodra het festival zijn
+embed vervangt, en een zoeklink komt altijd ergens uit.
+
 **Beschrijvingen horen niet in `planner.html`.** De teksten en foto's zijn van
 het festival. De planner laadt ze op het moment zelf uit `schema.json` en linkt
 foto's rechtstreeks naar gracelandfestival.nl; er worden geen kopieën in de

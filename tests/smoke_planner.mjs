@@ -222,8 +222,27 @@ check('de weggehaalde is ook op de server weg',
 q('#vProg').click();
 check('programmalijst', qa('.prog h3').map(e => e.textContent),
   ['Ezra', 'Labyrint', 'Lucky Fonz III', 'Nynke Laverman']);
+
+// Labyrint is een veldprogramma, geen muziek: die hoort geen Spotify-link
+// te krijgen.
+check('alleen muziekartiesten krijgen een Spotify-link in de lijst',
+  qa('.prog').filter(k => k.querySelector('a.sp'))
+    .map(k => k.querySelector('h3').textContent).sort(),
+  ['Ezra', 'Lucky Fonz III', 'Nynke Laverman']);
+
 q('.more').click();
 check('detailvenster opent', q('#detail h2').textContent, 'Ezra');
+const frame = q('#detail .vid iframe');
+check('video-embed staat erin', !!frame, true);
+check('embed wijst naar de juiste video, zonder cookies',
+  frame.getAttribute('src'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+check('embed laadt pas als het nodig is', frame.getAttribute('loading'), 'lazy');
+check('titel van de video erboven', q('#detail .vid h3').textContent, 'Ezra - Live');
+const sp = [...q('#detail').querySelectorAll('.dlinks a')]
+  .find(a => /Spotify/.test(a.textContent));
+check('Spotify-link bij een muziekartiest', !!sp, true);
+check('en dat is een zoeklink op de naam',
+  sp.getAttribute('href'), 'https://open.spotify.com/search/Ezra');
 // Hetzelfde optreden staat ook in de lijst erachter; dat moet meebewegen.
 const inModal = q('#detail .occ');
 const zelfdeId = inModal.dataset.id;

@@ -65,6 +65,18 @@ STAGE_ORDER = [
 
 TIME_RE = re.compile(r"(\d{1,2}:\d{2})\s*[-\u2013\u2014]\s*(\d{1,2}:\d{2})")
 DAY_RE = re.compile(r"^(donderdag|vrijdag|zaterdag|zondag)\b", re.I)
+
+# YouTube-embeds op de detailpagina. Zowel de gewone als de nocookie-variant,
+# en youtu.be voor het geval het festival een korte link plakt.
+YT_RE = re.compile(r"(?:youtube(?:-nocookie)?\.com/embed/|youtu\.be/)([\w-]{6,20})")
+MAX_VIDEOS = 2
+
+
+
+def txt_attr(v):
+    return " ".join((v or "").split())[:120]
+
+
 BOILERPLATE = re.compile(
     r"^(share the love|deel deze pagina|copyright|volg ons|bekijk het programma|"
     r"koop hier je tickets|open main menu|direct naar content)", re.I)
@@ -179,10 +191,23 @@ def parse_detail(html, slug):
                 and href not in links:
             links.append(href)
 
+    # De video's die het festival zelf op de pagina zet. Alleen het id en de
+    # titel; de video blijft van YouTube en wordt pas geladen als iemand het
+    # detailvenster opent.
+    videos = []
+    for fr in main.find_all("iframe"):
+        src = fr.get("src") or fr.get("data-src") or fr.get("data-lazy-src") or ""
+        m = YT_RE.search(src)
+        if not m or any(v["id"] == m.group(1) for v in videos):
+            continue
+        videos.append({"id": m.group(1), "title": txt_attr(fr.get("title"))})
+        if len(videos) >= MAX_VIDEOS:
+            break
+
     return {"slug": slug, "title": title,
             "url": SITE + "/programma/" + slug + "/", "image": image,
             "cats": cats, "partners": partners, "when": when,
-            "body": body, "links": links[:4]}
+            "body": body, "links": links[:4], "videos": videos}
 
 
 def code_for(cats):
