@@ -854,6 +854,7 @@ const MEKEY = 'graceland2026:wie';
 const AKEY = 'graceland2026:code';
 const GKEY = 'graceland2026:groep';   // namen, zodat een hapering niets leegmaakt
 const CKEY = 'graceland2026:schema';
+const ZKEY = 'graceland2026:breedte';  // gekozen zoomniveau van het schema
 const mem = {};
 const store = {
   async get(k){
@@ -1962,11 +1963,23 @@ document.getElementById('vAll').onclick    = () => { view = 'samen';     render(
 document.getElementById('sync').onclick    = () => { if(API_URL) openGate(); };
 document.getElementById('q').oninput = () => { if(view === 'programma') renderProgramma(); };
 
+/* Zoomniveau zetten en de knoppen laten kloppen. Alleen waarden die als knop
+   bestaan, zodat een rare waarde in de opslag de opmaak niet sloopt. */
+function setZoom(waarde){
+  const knoppen = [...document.getElementById('zoom').querySelectorAll('button')];
+  const knop = knoppen.find(b => b.dataset.z === String(waarde));
+  if(!knop) return false;
+  ppm = parseFloat(knop.dataset.z);
+  knoppen.forEach(b => b.setAttribute('aria-pressed', b === knop));
+  return true;
+}
+
 document.getElementById('zoom').querySelectorAll('button').forEach(b => b.onclick = () => {
-  ppm = parseFloat(b.dataset.z);
-  document.getElementById('zoom').querySelectorAll('button')
-    .forEach(x => x.setAttribute('aria-pressed', x === b));
-  render();
+  setZoom(b.dataset.z);
+  store.set(ZKEY, b.dataset.z);
+  // Je plek vasthouden: de blokken worden breder of smaller, maar je zit nog
+  // steeds naar hetzelfde stuk van de dag te kijken.
+  render(true);
 });
 
 document.getElementById('btnCopy').onclick = async e => {
@@ -2024,6 +2037,8 @@ document.getElementById('btnSync').onclick = () => loadRemote(true);
   // Tijdens het festival begin je op de dag van vandaag in plaats van donderdag.
   const nu = nowOnTimeline();
   if(nu) activeDay = nu.day.key;
+
+  setZoom(await store.get(ZKEY));
 
   render();
   setInterval(tickNow, 30 * 1000);
