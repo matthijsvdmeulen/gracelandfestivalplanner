@@ -864,6 +864,8 @@ const store = {
 };
 
 let picks = {};           // persoons-id -> Set(blok-id)
+let userScrolled = false; // heeft de bezoeker zelf horizontaal geschoven?
+let autoScrollAt = 0;     // wanneer wij het laatst zelf schoven
 let activeDay = 'do';
 let view = 'schema';
 let ppm = 2.2;
@@ -1383,7 +1385,9 @@ function renderTabs(){
     return `<button class="tab" role="tab" data-day="${d.key}" aria-selected="${d.key===activeDay}">
       ${d.label} <span class="d">${d.date}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
   }).join('');
-  host.querySelectorAll('.tab').forEach(b => b.onclick = () => { activeDay = b.dataset.day; render(); });
+  host.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+    activeDay = b.dataset.day; userScrolled = false; render();
+  });
 }
 
 function renderChips(){
@@ -1472,12 +1476,20 @@ function renderSchema(){
     </div></div>
     <p class="hint">Tik een blok aan om het aan je programma toe te voegen · ⚠ betekent dat twee keuzes elkaar overlappen</p>`;
 
-  // Eén keer per sessie meeschuiven naar het heden, daarna niet meer: anders
-  // sleurt de planner je bij elke ronde terug terwijl je zit te bladeren.
-  if(nu && !sprongNaarNu){
-    sprongNaarNu = true;
-    const sc = document.getElementById('scroller');
-    if(sc) sc.scrollLeft = Math.max(0, nu.x - sc.clientWidth / 3);
+  // Meeschuiven naar het heden bij elke hertekening, tot je zelf gaat schuiven.
+  // Eén keer per sessie is niet genoeg: na het laden komt het live schema
+  // binnen en vervangt dat de hele tabel, inclusief de scrollpositie.
+  const sc = document.getElementById('scroller');
+  if(sc){
+    if(nu && !userScrolled){
+      sc.scrollLeft = Math.max(0, nu.x - sc.clientWidth / 3);
+      autoScrollAt = Date.now();
+    }
+    // Ons eigen schuiven vuurt ook een scroll-event; dat mag niet als "de
+    // bezoeker stuurt zelf" tellen.
+    sc.addEventListener('scroll', () => {
+      if(Date.now() - autoScrollAt > 400) userScrolled = true;
+    }, { passive: true });
   }
 
   document.querySelectorAll('.block').forEach(b => b.onclick = ev => {
@@ -1873,7 +1885,6 @@ function download(name, text, mime){
 /* Elke halve minuut de streep verzetten. Alleen als er iets verandert aan of
    hij er hoort te staan, tekenen we het schema opnieuw - dat scheelt een
    onderbreking midden in een tik. */
-let sprongNaarNu = false;
 function tickNow(){
   if(view !== 'schema') return;
   const d = DAYS.find(x => x.key === activeDay);
@@ -1919,13 +1930,17 @@ function render(keepScroll){
   else if(view === 'samen') renderSamen();
   else renderMine();
   const sc2 = document.getElementById('scroller');
-  if(sc2 && x) sc2.scrollLeft = x;
+  // Ook dit herstel is ons eigen schuiven, dus het mag de automatische sprong
+  // niet uitschakelen.
+  if(sc2 && x){ sc2.scrollLeft = x; autoScrollAt = Date.now(); }
   document.querySelectorAll('#chips .chip').forEach(b => {
     b.setAttribute('aria-pressed', b.dataset.cat === '__all' ? filters.size === 0 : filters.has(b.dataset.cat));
   });
 }
 
-document.getElementById('vSchema').onclick = () => { view = 'schema';    render(); };
+document.getElementById('vSchema').onclick = () => {
+  view = 'schema'; userScrolled = false; render();
+};
 document.getElementById('vProg').onclick   = () => { view = 'programma'; render(); };
 document.getElementById('vMine').onclick   = () => { view = 'mine';      render(); };
 document.getElementById('vAll').onclick    = () => { view = 'samen';     render(); };
