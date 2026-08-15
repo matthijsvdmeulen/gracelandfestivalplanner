@@ -319,6 +319,37 @@ check('streep op de juiste plek', q('#nowtick').style.left,
   ((21 * 60 + 15 - 600) * 2.2) + 'px');
 check('per podium een stukje streep', qa('.nowline').length, qa('.row .track').length);
 
+// jsdom rekent geen opmaak uit, dus clientWidth is 0 en de streep komt precies
+// op x te staan.
+const verwachtX = (21 * 60 + 15 - 600) * 2.2;
+check('schema schuift bij het openen naar nu', q('#scroller').scrollLeft, verwachtX);
+
+// Na het laden komt het live schema binnen en wordt alles opnieuw getekend.
+// Zonder deze fix stond je dan weer helemaal links.
+await w.eval('render()');
+await settle();
+check('en blijft daar na een hertekening', q('#scroller').scrollLeft, verwachtX);
+
+// Een ronde die de positie herstelt is ons eigen schuiven en mag de sprong
+// niet uitschakelen.
+await settle(500);
+await w.eval('render(true)');
+await settle();
+check('een ronde schakelt de sprong niet uit', q('#scroller').scrollLeft, verwachtX);
+
+// Zodra je zelf schuift houdt de planner op met sturen.
+await settle(500);
+q('#scroller').dispatchEvent(new w.Event('scroll'));
+await w.eval('render()');
+await settle();
+check('na zelf schuiven stuurt hij niet meer', q('#scroller').scrollLeft, 0);
+
+// Het schema opnieuw openen springt weer naar nu.
+q('#vProg').click();
+q('#vSchema').click();
+await settle();
+check('opnieuw openen springt weer naar nu', q('#scroller').scrollLeft, verwachtX);
+
 // Zelfde moment, maar je kijkt naar een andere dag: dan hoort er niets te staan.
 q('#tabs [data-day="za"]').click();
 await settle();
