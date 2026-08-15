@@ -350,12 +350,26 @@ await w.eval('render(true)');
 await settle();
 check('een ronde schakelt de sprong niet uit', q('#scroller').scrollLeft, verwachtX);
 
-// Zodra je zelf schuift houdt de planner op met sturen.
+// Zodra je zelf schuift houdt de planner op met sturen: een ronde die je
+// positie kan herstellen laat hem gewoon staan.
 await settle(500);
+q('#scroller').scrollLeft = 300;
 q('#scroller').dispatchEvent(new w.Event('scroll'));
+await w.eval('render(true)');
+await settle();
+check('na zelf schuiven blijft je eigen plek staan', q('#scroller').scrollLeft, 300);
+
+// Opnieuw ophalen gebeurt ook bij elke visibilitychange, dus als je je telefoon
+// ontgrendelt. Dat mag je plek niet kosten.
+await w.eval('loadRemote(false)');
+await settle(400);
+check('opnieuw ophalen houdt je plek', q('#scroller').scrollLeft, 300);
+
+// Valt er echt niets te herstellen, dan is de nu-streep een betere landingsplek
+// dan het begin van de dag.
 await w.eval('render()');
 await settle();
-check('na zelf schuiven stuurt hij niet meer', q('#scroller').scrollLeft, 0);
+check('zonder positie landt hij op nu', q('#scroller').scrollLeft, verwachtX);
 
 // Het schema opnieuw openen springt weer naar nu.
 q('#vProg').click();
