@@ -403,6 +403,28 @@ check('voor het eerste blok nog geen streep', qa('.nowline').length, 0);
 
 await zetTijd('2026-09-01T14:00:00+02:00');
 
+/* --- breedte wordt onthouden --------------------------------------------- */
+q('#zoom [data-z="1.4"]').click();
+await settle();
+check('breedte in de opslag', w.localStorage.getItem('graceland2026:breedte'), '1.4');
+check('gekozen knop staat aan', q('#zoom [data-z="1.4"]').getAttribute('aria-pressed'), 'true');
+check('en de vorige uit', q('#zoom [data-z="2.2"]').getAttribute('aria-pressed'), 'false');
+check('ppm mee', await w.eval('ppm'), 1.4);
+
+// Zoals bij het laden: uit de opslag terugzetten.
+check('herstellen lukt', await w.eval('setZoom("3.2")'), true);
+check('ppm hersteld', await w.eval('ppm'), 3.2);
+check('en de knop volgt', q('#zoom [data-z="3.2"]').getAttribute('aria-pressed'), 'true');
+
+// Een waarde die geen knop is, mag de opmaak niet slopen.
+check('onzinwaarde wordt genegeerd', await w.eval('setZoom("99")'), false);
+check('ppm blijft dan staan', await w.eval('ppm'), 3.2);
+check('en een lege opslag ook', await w.eval('setZoom(null)'), false);
+
+await w.eval('setZoom("2.2")');
+await w.eval('render()');
+await settle();
+
 /* --- een groep die van de server verdwenen is ---------------------------- */
 delete server.groups['grote-groep-24'];
 await w.eval('pullPlans()');
