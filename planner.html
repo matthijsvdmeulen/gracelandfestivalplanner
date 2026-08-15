@@ -180,6 +180,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .block.narrow{padding:4px 4px 4px 7px}
 .block.narrow .t{font-size:10.5px;-webkit-line-clamp:3}
 .block.narrow .h{display:none}
+/* De informatieknop staat over de hoek van de titel heen en heeft daarvoor een
+   dekkende achtergrond. Ruimte vrijhouden met padding is geen goed idee: dan
+   past "Hanna Marieke" niet meer op een blok van een uur. Op een smal blok mag
+   de knop wat kleiner, zodat er meer titel overblijft. */
+.block.narrow .info{width:13px;height:13px;font-size:9px;top:2px;right:2px}
 
 .hint{
   font-family:'Space Mono',monospace;font-size:10.5px;color:var(--soil);
@@ -1448,7 +1453,9 @@ function renderSchema(){
       const w = Math.max((e.b - e.a) * ppm - 3, 34);
       const on = mine().has(e.id);
       const dim = filters.size && !filters.has(e.cat);
-      const cls = ['block', on?'on':'', clash.has(e.id)?'clash':'', dim?'dim':'', w < 82 ? 'narrow':''].filter(Boolean).join(' ');
+      const info = e.slug && PROGRAMS[e.slug];
+      const cls = ['block', on?'on':'', clash.has(e.id)?'clash':'', dim?'dim':'',
+                   w < 82 ? 'narrow':'', info ? 'metinfo':''].filter(Boolean).join(' ');
       const others = PEOPLE.filter(p => p.key !== me && (picks[p.key] || new Set()).has(e.id));
       const crowd = others.length
         ? `<span class="crowd">${others.slice(0, MAX_DOTS).map(p =>
@@ -1459,7 +1466,7 @@ function renderSchema(){
         style="left:${x}px;width:${w}px;top:${e.lane*46+4}px;height:42px;--ac:${CATS[e.cat].c};--bg:${on?'':CATS[e.cat].c+'1a'};--bd:${on?'':CATS[e.cat].c+'55'}"
         aria-pressed="${on}" title="${esc(e.title)} · ${e.st}–${e.en} · ${esc(stage)}${esc(wie)}">
         <span class="t">${esc(e.title)}</span><span class="h">${e.st}–${e.en}</span>${crowd}
-        ${e.slug && PROGRAMS[e.slug] && w >= 96 ? `<span class="info" data-slug="${esc(e.slug)}" role="button" tabindex="0" title="Meer over ${esc(e.title)}">i</span>` : ''}</button>`;
+        ${info ? `<span class="info" data-slug="${esc(e.slug)}" role="button" tabindex="0" title="Meer over ${esc(e.title)}">i</span>` : ''}</button>`;
     }).join('');
     return `<div class="row">
       <div class="lane" style="height:${h}px"><div class="nm">${esc(stage)}<span>${evts.length} item${evts.length===1?'':'s'}</span></div></div>

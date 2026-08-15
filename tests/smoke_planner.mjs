@@ -158,7 +158,20 @@ q('#vSchema').click();
 q('#tabs [data-day="vr"]').click();
 check('geen podium wordt verborgen',
   qa('.lane .nm').map(e => e.firstChild.textContent.trim()),
-  ['Grasland', 'Bospodium', 'Kinderdorp', 'The Lounge']);
+  ['Grasland', 'Bospodium', 'Kinderdorp', 'The Lounge', 'Stiltekapel']);
+
+// Een kwartier duurt maar 34px breed. Ook daar hoort de informatieknop te
+// staan; die zat eerder achter een drempel van 96px.
+const kort = qa('.block').find(b => /Getijdengebeden/.test(b.textContent));
+check('kort blok is er', !!kort, true);
+check('kort blok telt als smal', kort.classList.contains('narrow'), true);
+check('en heeft toch een informatieknop', !!kort.querySelector('.info'), true);
+// Alleen blokken waarvan we de beschrijving kennen krijgen de knop; Kinderdorp
+// en The Lounge staan niet in programs van de fixture.
+check('elk blok met een beschrijving heeft er een',
+  qa('.block.metinfo').length, qa('.block .info').length);
+check('en blokken zonder beschrijving juist niet',
+  qa('.block:not(.metinfo) .info').length, 0);
 
 /* --- kiezen synchroniseert ----------------------------------------------- */
 qa('.block')[0].click();
@@ -171,7 +184,7 @@ q('#vMine').click();
 check('doorlopend-paneel staat er', !!q('#fAdd'), true);
 // De dag begint nu om 10:00: Kinderdorp staat er weer bij en telt mee.
 check('halfuurstappen', [...q('#fStart').options].slice(0, 3).map(o => o.textContent),
-  ['10:00', '10:30', '11:00']);
+  ['09:30', '10:00', '10:30']);
 q('#fWhat').value = 'Labyrint';
 q('#fStart').value = [...q('#fStart').options].find(o => o.textContent === '20:30').value;
 q('#fDur').value = '90';
@@ -221,7 +234,7 @@ check('de weggehaalde is ook op de server weg',
 /* --- programma en detail -------------------------------------------------- */
 q('#vProg').click();
 check('programmalijst', qa('.prog h3').map(e => e.textContent),
-  ['Ezra', 'Labyrint', 'Lucky Fonz III', 'Nynke Laverman']);
+  ['Ezra', 'Getijdengebeden', 'Labyrint', 'Lucky Fonz III', 'Nynke Laverman']);
 
 // Labyrint is een veldprogramma, geen muziek: die hoort geen Spotify-link
 // te krijgen.
@@ -309,19 +322,19 @@ const zetTijd = async iso => {
 };
 q('#vSchema').click();
 
-// Vrijdagavond 21:15. De dag loopt van 10:00 tot 23:00, dus start = 600.
+// Vrijdagavond 21:15. De x vragen we op bij de planner zelf, zodat deze tests
+// niet omvallen zodra er een vroeger blok bij komt en de dag eerder begint.
+// jsdom rekent geen opmaak uit, dus clientWidth is 0 en de streep komt precies
+// op die x te staan.
 await zetTijd('2026-08-14T21:15:00+02:00');
 q('#tabs [data-day="vr"]').click();
 await settle();
+const verwachtX = await w.eval('nowX(DAYS.find(x => x.key === "vr")).x');
 check('nu-streep staat er op de dag zelf', qa('.nowline').length > 0, true);
 check('label noemt de tijd', q('#nowtick').textContent, 'nu 21:15');
-check('streep op de juiste plek', q('#nowtick').style.left,
-  ((21 * 60 + 15 - 600) * 2.2) + 'px');
+check('streep op de juiste plek', q('#nowtick').style.left, verwachtX + 'px');
 check('per podium een stukje streep', qa('.nowline').length, qa('.row .track').length);
 
-// jsdom rekent geen opmaak uit, dus clientWidth is 0 en de streep komt precies
-// op x te staan.
-const verwachtX = (21 * 60 + 15 - 600) * 2.2;
 check('schema schuift bij het openen naar nu', q('#scroller').scrollLeft, verwachtX);
 
 // Na het laden komt het live schema binnen en wordt alles opnieuw getekend.
