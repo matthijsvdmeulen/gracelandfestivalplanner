@@ -1975,11 +1975,23 @@ function setZoom(waarde){
 }
 
 document.getElementById('zoom').querySelectorAll('button').forEach(b => b.onclick = () => {
+  // Niet de pixelpositie vasthouden maar het tijdstip: bij een andere breedte
+  // wijst hetzelfde aantal pixels een heel ander moment van de dag aan. We
+  // mikken op het midden van je scherm, want daar kijk je naar.
+  const d = DAYS.find(x => x.key === activeDay);
+  const sc = document.getElementById('scroller');
+  const start = d ? Math.floor(d.min / 60) * 60 : 0;
+  const midden = (d && sc) ? start + (sc.scrollLeft + sc.clientWidth / 2) / ppm : null;
+
   setZoom(b.dataset.z);
   store.set(ZKEY, b.dataset.z);
-  // Je plek vasthouden: de blokken worden breder of smaller, maar je zit nog
-  // steeds naar hetzelfde stuk van de dag te kijken.
   render(true);
+
+  const sc2 = document.getElementById('scroller');
+  if(sc2 && midden !== null){
+    sc2.scrollLeft = Math.max(0, (midden - start) * ppm - sc2.clientWidth / 2);
+    autoScrollAt = Date.now();
+  }
 });
 
 document.getElementById('btnCopy').onclick = async e => {

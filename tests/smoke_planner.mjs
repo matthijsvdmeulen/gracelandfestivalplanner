@@ -411,6 +411,23 @@ check('gekozen knop staat aan', q('#zoom [data-z="1.4"]').getAttribute('aria-pre
 check('en de vorige uit', q('#zoom [data-z="2.2"]').getAttribute('aria-pressed'), 'false');
 check('ppm mee', await w.eval('ppm'), 1.4);
 
+// Van breedte wisselen houdt het tijdstip vast, niet het aantal pixels.
+// jsdom heeft geen opmaak, dus clientWidth is 0 en het midden is de linkerrand:
+// dan hoort de positie exact met de breedteverhouding mee te schalen.
+await w.eval('setZoom("2.2"); render();');
+await settle();
+q('#scroller').scrollLeft = 1100;          // 500 minuten na het begin van de dag
+q('#zoom [data-z="3.2"]').click();
+await settle();
+check('breedte gewisseld', await w.eval('ppm'), 3.2);
+check('zelfde moment, meegeschaald naar de nieuwe breedte',
+  Math.round(q('#scroller').scrollLeft), Math.round(1100 / 2.2 * 3.2));
+
+q('#zoom [data-z="1.4"]').click();
+await settle();
+check('en weer terug naar compact',
+  Math.round(q('#scroller').scrollLeft), Math.round(1100 / 2.2 * 1.4));
+
 // Zoals bij het laden: uit de opslag terugzetten.
 check('herstellen lukt', await w.eval('setZoom("3.2")'), true);
 check('ppm hersteld', await w.eval('ppm'), 3.2);
