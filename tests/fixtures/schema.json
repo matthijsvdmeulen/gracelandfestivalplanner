@@ -6,7 +6,8 @@
     ["Grasland","Lucky Fonz III","19:00","20:00","M","lucky-fonz-iii"],
     ["Bospodium","Spull","22:00","23:00","M","spull"],
     ["Kinderdorp","Speelvlooien Circus","10:00","12:00","K","speelvlooien-circus"],
-    ["The Lounge","Karaoke met Berend Koen","22:00","23:00","T","karaoke-met-berend-koen"]]},
+    ["The Lounge","Karaoke met Berend Koen","22:00","23:00","T","karaoke-met-berend-koen"],
+    ["Stiltekapel","Getijdengebeden","09:30","09:45","W","getijdengebeden"]]},
   {"key":"za","label":"Zaterdag","date":"15 aug","iso":"20260815","items":[
     ["Grasland","Nynke Laverman","17:30","18:30","M","nynke-laverman"],
     ["Wilde nis","Ezra","22:00","00:00","M","ezra"]]},
@@ -22,5 +23,8 @@
     "videos":[{"id":"dQw4w9WgXcQ","title":"Ezra - Live"}]},
   "labyrint":{"title":"Labyrint","url":"https://x/3","image":null,"cats":["Veld"],
     "partners":["Protestantse Kerk Nederland"],"when":[],"body":["Doorlopend te lopen."],"links":[]},
+  "getijdengebeden":{"title":"Getijdengebeden","url":"https://x/5","image":null,"cats":["Workshop"],
+    "partners":[],"when":[{"day":"vr","st":"09:30","en":"09:45","stage":"Stiltekapel"}],
+    "body":["Een kwartier stilte."],"links":[]},
   "lucky-fonz-iii":{"title":"Lucky Fonz III","url":"https://x/4","image":null,"cats":["Muziek"],
     "partners":[],"when":[{"day":"vr","st":"19:00","en":"20:00","stage":"Grasland"}],"body":["Liedjes."],"links":[]}}}
