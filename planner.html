@@ -1183,12 +1183,15 @@ async function loadRemote(force){
   if(!SOURCE_URL) return;
   let cache = null;
   try{ cache = JSON.parse(await store.get(CKEY) || 'null'); }catch(e){}
-  if(cache && cache.data){ applyData(cache.data, cache.at, true); render(); }
+  // Met behoud van je plek: dit draait ook bij elke visibilitychange, dus als
+  // je je telefoon ontgrendelt. Zonder keepScroll sprong het schema dan terug
+  // naar het begin van de dag.
+  if(cache && cache.data){ applyData(cache.data, cache.at, true); render(true); }
 
   const now = Date.now();
   if(!force && cache && now - (cache.lastTry || 0) < MAX_AGE) return;
 
-  dataState.checking = true; render();
+  dataState.checking = true; render(true);
   try{
     const url = SOURCE_URL + (SOURCE_URL.includes('?') ? '&' : '?') + 'v=' + Math.floor(now / MAX_AGE);
     const res = await fetch(url, { cache:'no-store' });
@@ -1204,7 +1207,7 @@ async function loadRemote(force){
     await store.set(CKEY, JSON.stringify(Object.assign({}, cache || {}, { lastTry: now })));
   }finally{
     dataState.checking = false;
-    render();
+    render(true);
   }
 }
 
@@ -1488,7 +1491,7 @@ function renderSchema(){
   // binnen en vervangt dat de hele tabel, inclusief de scrollpositie.
   const sc = document.getElementById('scroller');
   if(sc){
-    if(nu && !userScrolled){
+    if(nu && (!userScrolled || !herstelbarePositie)){
       sc.scrollLeft = Math.max(0, nu.x - sc.clientWidth / 3);
       autoScrollAt = Date.now();
     }
@@ -1795,7 +1798,7 @@ function renderWho(){
   host.querySelectorAll('.who').forEach(b => b.onclick = async () => {
     me = b.dataset.who;
     await store.set(MEKEY, me);
-    render();
+    render(true);
   });
   const nm = host.querySelector('#btnNames');
   if(nm) nm.onclick = () => { draftNames = []; openGate('names'); };
@@ -1908,9 +1911,14 @@ function tickNow(){
 /* ============================================================
    HOOFDRENDER
    ============================================================ */
+let herstelbarePositie = false;
+
 function render(keepScroll){
   const sc = document.getElementById('scroller');
   const x = keepScroll && sc ? sc.scrollLeft : 0;
+  // Valt er niets te herstellen, dan is de nu-streep een betere landingsplek
+  // dan het begin van de dag - ook als je zelf al geschoven had.
+  herstelbarePositie = x > 0;
   renderTabs();
   renderStatus();
   renderChanges();

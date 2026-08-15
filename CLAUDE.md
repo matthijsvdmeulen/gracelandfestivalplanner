@@ -124,6 +124,12 @@ bij een nog onbekende code: anders komt een oude browser telkens terug met een
 verdwenen groep en maakt iemand hem per ongeluk opnieuw aan. De Worker maakt
 zelf nooit een groep aan; dat kan alleen met een expliciete `POST /api/group`.
 
+**Hertekenen mag je plek in het schema niet kosten.** Roep `render()` zonder
+`keepScroll` alleen aan als de weergave echt verandert. `loadRemote()` draait
+bij elke `visibilitychange` - dus telkens als iemand zijn telefoon ontgrendelt -
+en sprong daardoor terug naar het begin van de dag. Valt er niets te herstellen,
+dan landt het schema op de nu-streep en niet op nul.
+
 **De nu-streep leest de klok in de festivalzone.** `nowOnTimeline()` gaat via
 `Intl` over `Europe/Amsterdam` en niet over de klok van het toestel, zodat
 iemand die van elders meekijkt geen streep op het verkeerde moment ziet. `nowFn`
