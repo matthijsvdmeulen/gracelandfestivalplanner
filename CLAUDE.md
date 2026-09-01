@@ -15,7 +15,7 @@ commentaar, commitberichten.
 | `schema.json` | Gegenereerd. Handmatig bewerken heeft geen zin, de volgende run overschrijft het. |
 | `.graceland-cache.json` | Gegenereerd. Beschrijvingen per slug met timestamp, wordt meegecommit. |
 | `worker/` | Cloudflare Worker + KV: de gedeelde planning, één groep per toegangscode. |
-| `.github/workflows/schema.yml` | Elk half uur scrapen + publiceren op GitHub Pages. |
+| `.github/workflows/schema.yml` | Publiceren op GitHub Pages bij elke push naar main. Scrapen alleen nog handmatig; het halfuurlijkse schema staat uit na de editie 2026. |
 | `tests/` | Draait offline op fixtures. |
 
 ## Draaien
@@ -167,6 +167,14 @@ tijden en podia.
 niet meer bestaat opnieuw op dag + titel, en meldt "verplaatst" of "vervallen".
 Selectie-id's hebben de vorm `dag|podium|titel|begintijd`. Verander dat formaat
 alleen als je migratie voor bestaande opslag meelevert.
+
+**De scraper draait buiten het seizoen niet vanzelf.** Na de editie 2026 staat
+het `schedule`-blok in `schema.yml` uit: elk half uur een programma ophalen dat
+niet meer verandert is belasting van gracelandfestival.nl zonder opbrengst. Een
+push naar main publiceert nog gewoon, met de `schema.json` die in de repo staat.
+Scrapen kan handmatig via Run workflow met `scrapen` aan. Zet het schema pas
+weer aan als zo'n handmatige run slaagt - de site kan in een jaar veranderd
+zijn.
 
 ## Waar het snel misgaat
 
