@@ -1,19 +1,43 @@
 # .github/workflows/schema.yml
 #
-# Haalt elk half uur het programma op en publiceert de planner op GitHub Pages.
-# Omdat index.html en schema.json op dezelfde origin staan, is er geen CORS
-# nodig - de fetch in de planner is gewoon een relatief pad.
+# Publiceert de planner op GitHub Pages, en haalt op verzoek eerst het
+# programma op. Omdat index.html en schema.json op dezelfde origin staan, is er
+# geen CORS nodig - de fetch in de planner is gewoon een relatief pad.
 #
 # Eenmalig instellen: Settings -> Pages -> Source: "GitHub Actions".
+#
+# NA DE EDITIE 2026 STAAT DE SCRAPER UIT. De editie van 13-16 augustus 2026 is
+# geweest; elk half uur gracelandfestival.nl aftasten voor een programma dat
+# niet meer verandert is onnodige belasting van hun site. Wat er nu nog gebeurt
+# bij een push naar main is samenstellen en publiceren, met de schema.json die
+# in de repo staat - de site blijft dus gewoon bijwerken als planner.html
+# verandert.
+#
+# Volgend jaar weer aanzetten:
+#   1. Haal het commentaar weg voor het "schedule"-blok hieronder.
+#   2. Draai eerst een handmatige run (Actions -> deze workflow -> Run workflow,
+#      met "scrapen" aan) en kijk of hij slaagt. De site kan in een jaar
+#      veranderd zijn; de scraper stopt dan met een melding in plaats van een
+#      half schema weg te schrijven. Zie CLAUDE.md, "Afspraken die je niet moet
+#      omzeilen": verlaag --min-programs / --min-items niet om een run te laten
+#      slagen.
+#   3. Pas als die run een geloofwaardige schema.json oplevert, de planning erop
+#      loslaten.
 
 name: Schema bijwerken en publiceren
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"
+  # Uitgezet na de editie 2026 - zie de toelichting bovenaan dit bestand.
+  # schedule:
+  #   - cron: "*/30 * * * *"
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      scrapen:
+        description: "Eerst het programma ophalen bij gracelandfestival.nl"
+        type: boolean
+        default: true
 
 permissions:
   contents: write        # om schema.json en de cache terug te committen
@@ -33,18 +57,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Alleen bij een handmatige run met "scrapen" aan wordt gracelandfestival.nl
+      # nog benaderd. Bij een push publiceren we de schema.json die in de repo
+      # staat; die is en blijft geldig zolang het programma niet verandert.
       - uses: actions/setup-python@v5
+        if: inputs.scrapen
         with:
           python-version: "3.12"
 
       - run: pip install requests beautifulsoup4
+        if: inputs.scrapen
 
       - name: Programma ophalen
+        if: inputs.scrapen
         run: python scrape_graceland.py --out schema.json
 
       # De beschrijvingencache meecommitten: een volgende run hoeft dan alleen
       # nieuwe detailpagina's op te halen in plaats van alle ~130.
       - name: Wijzigingen terugcommitten
+        if: inputs.scrapen
         run: |
           if git diff --quiet -- schema.json .graceland-cache.json; then
             echo "Geen wijzigingen."
